@@ -20,6 +20,7 @@ interface TaskState {
     fetchTasks: () => Promise<void>
     addTask: (title: string, sector: string | string[]) => Promise<void>
     updateTaskSector: (id: string, newSector: string | string[]) => Promise<void>
+    updateTask: (id: string, updates: Partial<Task>) => Promise<void>
     toggleTask: (id: string, currentStatus: Task['status']) => Promise<void>
     moveToTrash: (id: string) => Promise<void>
     restoreTask: (id: string) => Promise<void>
@@ -133,7 +134,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     },
 
     updateTaskSector: async (id, newSector) => {
-        const previousTasks = get().tasks
         set(state => ({
             tasks: state.tasks.map(t => t.id === id ? { ...t, sector: newSector } : t)
         }))
@@ -145,7 +145,21 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
         if (error) {
             console.error('Error updating task sector:', error)
-            set({ tasks: previousTasks })
+        }
+    },
+
+    updateTask: async (id, updates) => {
+        set(state => ({
+            tasks: state.tasks.map(t => t.id === id ? { ...t, ...updates } : t)
+        }))
+
+        const { error } = await supabase
+            .from('tasks')
+            .update(updates)
+            .eq('id', id)
+
+        if (error) {
+            console.error('Error updating task:', error)
         }
     },
 

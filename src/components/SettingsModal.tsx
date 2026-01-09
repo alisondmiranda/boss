@@ -1,70 +1,56 @@
+
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     Settings, X, Key, ExternalLink, Check, AlertCircle, Plus, Trash2, Tag,
-    Briefcase, Heart, User, Home, DollarSign, Book, Plane, Star, Zap,
-    Coffee, Music, Gamepad, Bookmark, Pencil // Added Pencil icon
+    Pencil, Link as LinkIcon
 } from 'lucide-react'
 import { useSettingsStore, Sector } from '../store/settingsStore'
 import { useToast } from '../store/toastStore'
-
-export const ICONS = [
-    { value: 'briefcase', icon: Briefcase, label: 'Trabalho' },
-    { value: 'heart', icon: Heart, label: 'Saúde' },
-    { value: 'user', icon: User, label: 'Pessoal' },
-    { value: 'home', icon: Home, label: 'Casa' },
-    { value: 'dollar-sign', icon: DollarSign, label: 'Finanças' },
-    { value: 'book', icon: Book, label: 'Estudos' },
-    { value: 'plane', icon: Plane, label: 'Viagem' },
-    { value: 'star', icon: Star, label: 'Importante' },
-    { value: 'zap', icon: Zap, label: 'Urgente' },
-    { value: 'coffee', icon: Coffee, label: 'Lazer' },
-    { value: 'music', icon: Music, label: 'Música' },
-    { value: 'gamepad', icon: Gamepad, label: 'Games' },
-    { value: 'bookmark', icon: Bookmark, label: 'Outros' },
-    { value: 'tag', icon: Tag, label: 'Tag' }
-]
-
-const COLORS: { value: Sector['color'], hex: string, label: string }[] = [
-    { value: 'slate', hex: '#64748b', label: 'Cinza' },
-    { value: 'red', hex: '#ef4444', label: 'Vermelho' },
-    { value: 'orange', hex: '#f97316', label: 'Laranja' },
-    { value: 'amber', hex: '#f59e0b', label: 'Âmbar' },
-    { value: 'yellow', hex: '#eab308', label: 'Amarelo' },
-    { value: 'lime', hex: '#84cc16', label: 'Lima' },
-    { value: 'green', hex: '#10b981', label: 'Verde' },
-    { value: 'teal', hex: '#14b8a6', label: 'Verde Água' },
-    { value: 'cyan', hex: '#06b6d4', label: 'Ciano' },
-    { value: 'sky', hex: '#0ea5e9', label: 'Céu' },
-    { value: 'blue', hex: '#3b82f6', label: 'Azul' },
-    { value: 'indigo', hex: '#6366f1', label: 'Índigo' },
-    { value: 'violet', hex: '#8b5cf6', label: 'Violeta' },
-    { value: 'purple', hex: '#a855f7', label: 'Roxo' },
-    { value: 'fuchsia', hex: '#d946ef', label: 'Fúcsia' },
-    { value: 'pink', hex: '#ec4899', label: 'Rosa' },
-]
+import { useAuthStore } from '../store/authStore'
+import crownLogo from '../assets/crown.svg'
+import { ICONS, AVATAR_ICONS, COLORS } from '../constants/icons'
 
 interface SettingsModalProps {
     isOpen: boolean
     onClose: () => void
-    initialTab?: 'api' | 'sectors'
+    initialTab?: 'api' | 'sectors' | 'profile'
 }
 
 export function SettingsModal({ isOpen, onClose, initialTab = 'api' }: SettingsModalProps) {
-    const { geminiApiKey, setGeminiApiKey, sectors, addSector, updateSector, removeSector } = useSettingsStore()
+    const {
+        geminiApiKey, setGeminiApiKey,
+        sectors, addSector, updateSector, removeSector,
+        userProfile, updateUserProfile
+    } = useSettingsStore()
+    const { user, signInWithGoogle } = useAuthStore()
     const { addToast } = useToast()
     const [inputKey, setInputKey] = useState(geminiApiKey || '')
 
+    // Tabs
+    const [activeTab, setActiveTab] = useState<'api' | 'sectors' | 'profile'>(initialTab)
+
     // Sector Form State
-    const [activeTab, setActiveTab] = useState<'api' | 'sectors'>(initialTab)
     const [editingId, setEditingId] = useState<string | null>(null)
     const [sectorName, setSectorName] = useState('')
     const [sectorColor, setSectorColor] = useState<Sector['color']>('blue')
     const [sectorIcon, setSectorIcon] = useState('tag')
 
+    // Profile Form State
+    const [displayName, setDisplayName] = useState(userProfile.displayName || '')
+    const [avatarType, setAvatarType] = useState(userProfile.avatarType || 'icon')
+    const [selectedIcon, setSelectedIcon] = useState(userProfile.selectedIcon || 'crown')
+    const [customAvatarUrl, setCustomAvatarUrl] = useState(userProfile.customAvatarUrl || '')
+
     useEffect(() => {
-        if (isOpen) setActiveTab(initialTab)
-    }, [isOpen, initialTab])
+        if (isOpen) {
+            setActiveTab(initialTab)
+            setDisplayName(userProfile.displayName || '')
+            setAvatarType(userProfile.avatarType)
+            setSelectedIcon(userProfile.selectedIcon || 'crown')
+            setCustomAvatarUrl(userProfile.customAvatarUrl || '')
+        }
+    }, [isOpen, initialTab, userProfile])
 
     // Reset form when tab changes
     useEffect(() => {
@@ -84,6 +70,18 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'api' }: SettingsM
             addToast('Chave de API salva com sucesso!', 'success')
         }
     }
+
+    const handleSaveProfile = () => {
+        updateUserProfile({
+            displayName,
+            avatarType,
+            selectedIcon,
+            customAvatarUrl
+        })
+        addToast('Perfil atualizado!', 'success')
+    }
+
+
 
     const handleSaveSector = (e: React.FormEvent) => {
         e.preventDefault()
@@ -161,16 +159,22 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'api' }: SettingsM
                                 API & IA
                             </button>
                             <button
+                                onClick={() => setActiveTab('profile')}
+                                className={`flex-1 py-4 text-sm font-medium transition-all border-b-2 ${activeTab === 'profile' ? 'text-primary border-primary' : 'text-on-surface-variant border-transparent hover:text-on-surface hover:bg-surface-variant/30'}`}
+                            >
+                                Perfil
+                            </button>
+                            <button
                                 onClick={() => setActiveTab('sectors')}
                                 className={`flex-1 py-4 text-sm font-medium transition-all border-b-2 ${activeTab === 'sectors' ? 'text-primary border-primary' : 'text-on-surface-variant border-transparent hover:text-on-surface hover:bg-surface-variant/30'}`}
                             >
-                                Setores & Cores
+                                Setores
                             </button>
                         </div>
 
                         {/* Content */}
                         <div className="p-6 overflow-y-auto custom-scrollbar bg-surface-variant/30 flex-1">
-                            {activeTab === 'api' ? (
+                            {activeTab === 'api' && (
                                 <div className="space-y-6">
                                     <div className="bg-primary-container p-4 rounded-xl border border-transparent">
                                         <p className="text-sm text-on-primary-container leading-relaxed">
@@ -215,7 +219,121 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'api' }: SettingsM
                                         </div>
                                     </div>
                                 </div>
-                            ) : (
+                            )}
+
+                            {activeTab === 'profile' && (
+                                <div className="space-y-8">
+                                    {/* Name Section */}
+                                    <div className="space-y-3">
+                                        <label className="text-sm font-bold text-on-surface-variant uppercase tracking-wider block">Como quer ser chamado?</label>
+                                        <input
+                                            type="text"
+                                            value={displayName}
+                                            onChange={(e) => setDisplayName(e.target.value)}
+                                            placeholder="Boss"
+                                            className="w-full input-field !bg-surface text-lg"
+                                        />
+                                        <p className="text-xs text-on-surface-variant/70">
+                                            Deixe em branco para ser chamado de "Boss".
+                                        </p>
+                                    </div>
+
+                                    {/* Avatar Section */}
+                                    <div className="space-y-4">
+                                        <label className="text-sm font-bold text-on-surface-variant uppercase tracking-wider block">Avatar</label>
+
+                                        <div className="grid grid-cols-4 gap-3">
+                                            {/* Default Crown */}
+                                            <button
+                                                onClick={() => { setAvatarType('icon'); setSelectedIcon('crown') }}
+                                                className={`aspect-square rounded-2xl flex items-center justify-center border-2 transition-all ${avatarType === 'icon' && selectedIcon === 'crown' ? 'border-primary bg-primary-container/30' : 'border-outline-variant hover:border-primary/50 bg-surface'}`}
+                                            >
+                                                <img src={crownLogo} className="w-8 h-8 opacity-80" alt="Crown" />
+                                            </button>
+
+                                            {/* Other Icons */}
+                                            {AVATAR_ICONS.filter(i => i.value !== 'crown').map(avatar => (
+                                                <button
+                                                    key={avatar.value}
+                                                    onClick={() => { setAvatarType('icon'); setSelectedIcon(avatar.value) }}
+                                                    className={`aspect-square rounded-2xl flex items-center justify-center border-2 transition-all ${avatarType === 'icon' && selectedIcon === avatar.value ? 'border-primary bg-primary-container/30 text-primary' : 'border-outline-variant hover:border-primary/50 bg-surface text-on-surface-variant'}`}
+                                                    title={avatar.label}
+                                                >
+                                                    <avatar.icon className="w-8 h-8" />
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* External Sources */}
+                                        <div className="flex flex-col gap-3 pt-2">
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="radio"
+                                                    id="type-url"
+                                                    checked={avatarType === 'url'}
+                                                    onChange={() => setAvatarType('url')}
+                                                    className="accent-primary w-4 h-4"
+                                                />
+                                                <label htmlFor="type-url" className="text-sm text-on-surface">Usar URL / Gravatar</label>
+                                            </div>
+
+                                            {avatarType === 'url' && (
+                                                <motion.input
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                    type="text"
+                                                    value={customAvatarUrl}
+                                                    onChange={(e) => setCustomAvatarUrl(e.target.value)}
+                                                    placeholder="https://..."
+                                                    className="w-full input-field !bg-surface !text-sm !py-2"
+                                                />
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Identity Linking */}
+                                    <div className="space-y-3 pt-4 border-t border-outline-variant/30">
+                                        <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Contas Vinculadas</label>
+
+                                        <div className="flex flex-col gap-2">
+                                            <button
+                                                onClick={() => !user ? signInWithGoogle() : null}
+                                                className={`w-full p-3 rounded-xl border flex items-center justify-between transition-all ${user
+                                                    ? 'bg-surface border-green-200 text-green-700'
+                                                    : 'bg-surface border-outline-variant text-on-surface hover:bg-surface-variant'}`}
+                                            >
+                                                <span className="flex items-center gap-2 font-medium text-sm">
+                                                    <div className="w-2 h-2 rounded-full bg-current" />
+                                                    Google
+                                                </span>
+                                                {user ? <Check className="w-4 h-4" /> : <LinkIcon className="w-4 h-4 opacity-50" />}
+                                            </button>
+
+                                            <button
+                                                className="w-full p-3 rounded-xl border border-outline-variant bg-surface text-on-surface hover:bg-surface-variant flex items-center justify-between opacity-60 cursor-not-allowed transition-all"
+                                                title="Em breve"
+                                            >
+                                                <span className="flex items-center gap-2 font-medium text-sm">
+                                                    <div className="w-2 h-2 rounded-full bg-current opacity-20" />
+                                                    Apple
+                                                </span>
+                                                <span className="text-[10px] bg-surface-variant px-2 py-0.5 rounded text-on-surface-variant">Em breve</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-4">
+                                        <button
+                                            onClick={handleSaveProfile}
+                                            className="w-full py-3 bg-primary text-on-primary rounded-[16px] font-medium shadow-2 active:scale-95 transition-all"
+                                        >
+                                            Salvar Alterações
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'sectors' && (
                                 <div className="space-y-6">
                                     <form onSubmit={handleSaveSector} className={`space-y-4 bg-surface p-5 rounded-[20px] shadow-1 border transition-colors ${editingId ? 'border-primary ring-1 ring-primary/20' : 'border-outline-variant/50'}`}>
                                         <div className="flex justify-between items-center mb-2">
@@ -335,3 +453,4 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'api' }: SettingsM
         </AnimatePresence>
     )
 }
+

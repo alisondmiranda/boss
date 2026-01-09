@@ -8,14 +8,28 @@ export interface Sector {
     icon: string
 }
 
+
+export interface UserProfile {
+    displayName: string
+    avatarType: 'icon' | 'url' | 'upload'
+    selectedIcon: string | null
+    customAvatarUrl: string | null
+}
+
 interface SettingsState {
     geminiApiKey: string | null
     sectors: Sector[]
+    userProfile: UserProfile
+    
     setGeminiApiKey: (key: string) => void
     clearGeminiApiKey: () => void
+    
     addSector: (sector: Sector) => void
     updateSector: (id: string, updates: Partial<Sector>) => void
     removeSector: (id: string) => void
+    
+    updateUserProfile: (updates: Partial<UserProfile>) => void
+    
     isConfigured: () => boolean
 }
 
@@ -25,11 +39,19 @@ const DEFAULT_SECTORS: Sector[] = [
     { id: 'personal', label: 'Personal', color: 'orange', icon: 'user' }
 ]
 
+const DEFAULT_PROFILE: UserProfile = {
+    displayName: '',
+    avatarType: 'icon',
+    selectedIcon: 'crown',
+    customAvatarUrl: null
+}
+
 export const useSettingsStore = create<SettingsState>()(
     persist(
         (set, get) => ({
             geminiApiKey: null,
             sectors: DEFAULT_SECTORS,
+            userProfile: DEFAULT_PROFILE,
 
             setGeminiApiKey: (key) => set({ geminiApiKey: key }),
             clearGeminiApiKey: () => set({ geminiApiKey: null }),
@@ -40,10 +62,20 @@ export const useSettingsStore = create<SettingsState>()(
             })),
             removeSector: (id) => set((state) => ({ sectors: state.sectors.filter(s => s.id !== id) })),
 
+            updateUserProfile: (updates) => set((state) => ({
+                userProfile: { ...state.userProfile, ...updates }
+            })),
+
             isConfigured: () => !!get().geminiApiKey
         }),
         {
-            name: 'boss-settings'
+            name: 'boss-settings',
+            partialize: (state) => ({
+                geminiApiKey: state.geminiApiKey,
+                sectors: state.sectors,
+                userProfile: state.userProfile
+            })
         }
     )
 )
+
