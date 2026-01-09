@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     Plus, CheckCircle2, Trash2, LogOut,
     Settings, Send, Loader2, PanelLeftClose,
-    Layout, Calendar, Tag, Check, ListTodo, RefreshCw, AlertTriangle
+    Layout, Calendar, Tag, Check, ListTodo
 } from 'lucide-react'
 import crownLogo from '../assets/crown.svg'
 import { ICONS } from './SettingsModal'
