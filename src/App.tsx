@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import { useAuthStore } from './store/authStore'
+import { useTaskStore } from './store/taskStore'
+import { useSettingsStore } from './store/settingsStore'
 import { Dashboard } from './components/Dashboard'
 
 import appleLogo from './assets/apple.svg'
@@ -17,21 +19,14 @@ function App() {
     useEffect(() => {
         if (!user) return
 
-        let unsubTasks: (() => void) | undefined
-        let unsubSettings: (() => void) | undefined
-
-        // Import stores dynamically to avoid circular dependencies if any
-        Promise.all([
-            import('./store/taskStore'),
-            import('./store/settingsStore')
-        ]).then(([taskMod, settingsMod]) => {
-            unsubTasks = taskMod.useTaskStore.getState().subscribeToTasks()
-            unsubSettings = settingsMod.useSettingsStore.getState().subscribeToSettings()
-        })
+        console.log('Iniciando conexões Realtime...')
+        const unsubTasks = useTaskStore.getState().subscribeToTasks()
+        const unsubSettings = useSettingsStore.getState().subscribeToSettings()
 
         return () => {
-            unsubTasks?.()
-            unsubSettings?.()
+            console.log('Finalizando conexões Realtime...')
+            unsubTasks()
+            unsubSettings()
         }
     }, [user])
 

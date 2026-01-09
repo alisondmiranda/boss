@@ -735,16 +735,19 @@ export function Dashboard() {
                                         {filteredTasks
                                             .filter(t => {
                                                 if (sidebarMode === 'done') return t.status === 'done';
-                                                // In Nav mode, exclude trash (already handled) AND exclude done
                                                 return t.status !== 'done';
                                             })
                                             .map((task) => {
-                                                const taskSectors = Array.isArray(task.sector) ? task.sector : [task.sector]
+                                                const rawSector = task.sector
+                                                const taskSectors = Array.isArray(rawSector)
+                                                    ? rawSector.filter(Boolean)
+                                                    : (rawSector ? [rawSector] : [])
+
                                                 return (
                                                     <TaskItem
                                                         key={task.id}
                                                         task={task}
-                                                        taskSectors={taskSectors}
+                                                        taskSectors={taskSectors as string[]}
                                                         sectors={sectors}
                                                         toggleTask={toggleTask}
                                                         updateTaskSector={handleUpdateTaskSector}

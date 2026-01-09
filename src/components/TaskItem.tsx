@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle2, Trash2, Tag, Check } from 'lucide-react'
+import { CheckCircle2, Trash2, Tag, Check, Pencil } from 'lucide-react'
 import { Sector } from '../store/settingsStore'
 import { ICONS } from '../constants/icons'
 import { Task } from '../store/taskStore'
@@ -101,32 +101,52 @@ export function TaskItem({
                     className="flex-1 bg-transparent border-b border-primary outline-none py-1 text-base text-on-surface"
                 />
             ) : (
-                <span
-                    onClick={() => setIsEditing(true)}
-                    className={`flex-1 text-base transition-all truncate select-none cursor-pointer hover:text-primary ${task.status === 'done' ? 'text-on-surface-variant line-through opacity-60' : 'text-on-surface'}`}
-                    title="Clique para editar"
-                >
-                    {task.title}
-                </span>
+                <div className="flex-1 flex items-center gap-2 overflow-hidden">
+                    <span
+                        onClick={() => setIsEditing(true)}
+                        className={`text-base transition-all truncate select-none cursor-pointer hover:text-primary ${task.status === 'done' ? 'text-on-surface-variant line-through opacity-60' : 'text-on-surface'}`}
+                        title="Clique para editar"
+                    >
+                        {task.title}
+                    </span>
+                    <button
+                        onClick={() => setIsEditing(true)}
+                        className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity p-1"
+                        title="Editar"
+                    >
+                        <Pencil className="w-3 h-3" />
+                    </button>
+                </div>
             )}
 
             {/* Sector Badges */}
             <div className="relative flex gap-1 flex-wrap justify-end">
-                {taskSectors.map((sectorId) => {
-                    const sector = getSectorDetails(sectorId)
-                    const SectorIcon = ICONS.find(i => i.value === sector.icon)?.icon || Tag
-                    return (
-                        <button
-                            key={`${task.id}-${sectorId}`}
-                            onClick={() => setTaskMenuOpen(taskMenuOpen === task.id ? null : task.id)}
-                            className={`px-3 py-1 rounded-[8px] text-[11px] font-medium flex items-center gap-1.5 uppercase tracking-wide flex-shrink-0 cursor-pointer hover:brightness-95 transition-all ${getSectorColorClass(sector.color)}`}
-                            title="Mudar Setor"
-                        >
-                            <SectorIcon className="w-3 h-3 opacity-70" />
-                            {sector.label}
-                        </button>
-                    )
-                })}
+                {taskSectors.length === 0 ? (
+                    <button
+                        onClick={() => setTaskMenuOpen(taskMenuOpen === task.id ? null : task.id)}
+                        className={`px-3 py-1 rounded-[8px] text-[11px] font-medium flex items-center gap-1.5 uppercase tracking-wide flex-shrink-0 cursor-pointer hover:brightness-95 transition-all bg-slate-100 text-slate-500 border-slate-200`}
+                        title="Atribuir Setor"
+                    >
+                        <Tag className="w-3 h-3 opacity-70" />
+                        Geral
+                    </button>
+                ) : (
+                    taskSectors.map((sectorId) => {
+                        const sector = getSectorDetails(sectorId)
+                        const SectorIcon = ICONS.find(i => i.value === sector.icon)?.icon || Tag
+                        return (
+                            <button
+                                key={`${task.id}-${sectorId}`}
+                                onClick={() => setTaskMenuOpen(taskMenuOpen === task.id ? null : task.id)}
+                                className={`px-3 py-1 rounded-[8px] text-[11px] font-medium flex items-center gap-1.5 uppercase tracking-wide flex-shrink-0 cursor-pointer hover:brightness-95 transition-all ${getSectorColorClass(sector.color)}`}
+                                title="Mudar Setor"
+                            >
+                                <SectorIcon className="w-3 h-3 opacity-70" />
+                                {sector.label}
+                            </button>
+                        )
+                    })
+                )}
 
                 {/* Sector Popup Menu */}
                 <AnimatePresence>
