@@ -17,7 +17,7 @@ interface SettingsModalProps {
     initialTab?: 'api' | 'sectors' | 'profile'
 }
 
-export function SettingsModal({ isOpen, onClose, initialTab = 'api' }: SettingsModalProps) {
+export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: SettingsModalProps) {
     const {
         geminiApiKey, setGeminiApiKey,
         sectors, addSector, updateSector, removeSector,
@@ -153,12 +153,6 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'api' }: SettingsM
                         {/* Tabs */}
                         <div className="flex border-b border-outline-variant px-6">
                             <button
-                                onClick={() => setActiveTab('api')}
-                                className={`flex-1 py-4 text-sm font-medium transition-all border-b-2 ${activeTab === 'api' ? 'text-primary border-primary' : 'text-on-surface-variant border-transparent hover:text-on-surface hover:bg-surface-variant/30'}`}
-                            >
-                                API & IA
-                            </button>
-                            <button
                                 onClick={() => setActiveTab('profile')}
                                 className={`flex-1 py-4 text-sm font-medium transition-all border-b-2 ${activeTab === 'profile' ? 'text-primary border-primary' : 'text-on-surface-variant border-transparent hover:text-on-surface hover:bg-surface-variant/30'}`}
                             >
@@ -170,20 +164,39 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'api' }: SettingsM
                             >
                                 Setores
                             </button>
+                            <button
+                                onClick={() => setActiveTab('api')}
+                                className={`flex-1 py-4 text-sm font-medium transition-all border-b-2 ${activeTab === 'api' ? 'text-primary border-primary' : 'text-on-surface-variant border-transparent hover:text-on-surface hover:bg-surface-variant/30'}`}
+                            >
+                                API & IA
+                            </button>
                         </div>
 
                         {/* Content */}
                         <div className="p-6 overflow-y-auto custom-scrollbar bg-surface-variant/30 flex-1">
                             {activeTab === 'api' && (
-                                <div className="space-y-6">
-                                    <div className="bg-primary-container p-4 rounded-xl border border-transparent">
+                                <div className="space-y-6 relative">
+                                    {/* WIP Overlay */}
+                                    <div className="absolute inset-0 bg-surface/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center text-center p-6">
+                                        <div className="bg-surface p-6 rounded-2xl shadow-4 border border-outline-variant max-w-sm">
+                                            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
+                                                <AlertCircle className="w-6 h-6" />
+                                            </div>
+                                            <h3 className="text-lg font-bold text-on-surface mb-2">Em desenvolvimento</h3>
+                                            <p className="text-sm text-on-surface-variant">
+                                                A integração com a IA está sendo aprimorada para oferecer uma experiência ainda melhor. Volte em breve!
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-primary-container p-4 rounded-xl border border-transparent opacity-50 pointer-events-none">
                                         <p className="text-sm text-on-primary-container leading-relaxed">
                                             O Boss usa a inteligência do <strong>Google Gemini</strong> para organizar suas tarefas.
                                             Sua chave fica salva apenas no seu navegador.
                                         </p>
                                     </div>
 
-                                    <div>
+                                    <div className="opacity-50 pointer-events-none">
                                         <label className="block text-sm font-medium text-on-surface-variant mb-2 flex items-center gap-2">
                                             <Key className="w-4 h-4" />
                                             Chave de API
@@ -195,10 +208,12 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'api' }: SettingsM
                                                 onChange={(e) => setInputKey(e.target.value)}
                                                 placeholder="Cole sua chave AIza..."
                                                 className="flex-1 input-field !bg-surface"
+                                                disabled
                                             />
                                             <button
                                                 onClick={handleSaveKey}
                                                 className="h-[50px] px-6 bg-primary text-on-primary rounded-[12px] hover:shadow-2 transition-all flex items-center justify-center"
+                                                disabled
                                             >
                                                 <Check className="w-5 h-5" />
                                             </button>
@@ -213,7 +228,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'api' }: SettingsM
                                                     <AlertCircle className="w-3 h-3" /> Não configurado
                                                 </span>
                                             )}
-                                            <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-primary hover:underline flex items-center gap-1">
+                                            <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-primary hover:underline flex items-center gap-1 pointer-events-none">
                                                 Obter chave <ExternalLink className="w-3 h-3" />
                                             </a>
                                         </div>
@@ -263,32 +278,6 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'api' }: SettingsM
                                                 </button>
                                             ))}
                                         </div>
-
-                                        {/* External Sources */}
-                                        <div className="flex flex-col gap-3 pt-2">
-                                            <div className="flex items-center gap-3">
-                                                <input
-                                                    type="radio"
-                                                    id="type-url"
-                                                    checked={avatarType === 'url'}
-                                                    onChange={() => setAvatarType('url')}
-                                                    className="accent-primary w-4 h-4"
-                                                />
-                                                <label htmlFor="type-url" className="text-sm text-on-surface">Usar URL / Gravatar</label>
-                                            </div>
-
-                                            {avatarType === 'url' && (
-                                                <motion.input
-                                                    initial={{ opacity: 0, height: 0 }}
-                                                    animate={{ opacity: 1, height: 'auto' }}
-                                                    type="text"
-                                                    value={customAvatarUrl}
-                                                    onChange={(e) => setCustomAvatarUrl(e.target.value)}
-                                                    placeholder="https://..."
-                                                    className="w-full input-field !bg-surface !text-sm !py-2"
-                                                />
-                                            )}
-                                        </div>
                                     </div>
 
                                     {/* Identity Linking */}
@@ -320,15 +309,6 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'api' }: SettingsM
                                                 <span className="text-[10px] bg-surface-variant px-2 py-0.5 rounded text-on-surface-variant">Em breve</span>
                                             </button>
                                         </div>
-                                    </div>
-
-                                    <div className="pt-4">
-                                        <button
-                                            onClick={handleSaveProfile}
-                                            className="w-full py-3 bg-primary text-on-primary rounded-[16px] font-medium shadow-2 active:scale-95 transition-all"
-                                        >
-                                            Salvar Alterações
-                                        </button>
                                     </div>
                                 </div>
                             )}
@@ -447,6 +427,18 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'api' }: SettingsM
                                 </div>
                             )}
                         </div>
+
+                        {/* Sticky Footer for Profile Save */}
+                        {activeTab === 'profile' && (
+                            <div className="p-4 border-t border-outline-variant bg-surface shrink-0">
+                                <button
+                                    onClick={handleSaveProfile}
+                                    className="w-full py-3 bg-primary text-on-primary rounded-[16px] font-medium shadow-2 active:scale-95 transition-all"
+                                >
+                                    Salvar Alterações
+                                </button>
+                            </div>
+                        )}
                     </motion.div>
                 </motion.div>
             )}

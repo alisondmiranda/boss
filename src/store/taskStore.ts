@@ -25,6 +25,8 @@ interface TaskState {
     moveToTrash: (id: string) => Promise<void>
     restoreTask: (id: string) => Promise<void>
     permanentlyDeleteTask: (id: string) => Promise<void>
+    clearDoneTasks: () => Promise<void>
+    emptyTrash: () => Promise<void>
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -246,6 +248,53 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         if (error) {
             console.error('Error permanently deleting task:', error)
             set({ trashTasks: previousTrash })
+        }
+    },
+
+    clearDoneTasks: async () => {
+        const doneTasks = get().tasks.filter(t => t.status === 'done')
+        if (doneTasks.length === 0) return
+
+        const doneTaskIds = doneTasks.map(t => t.id)
+        const now = new Date().toISOString()
+
+        // Move active 'done' tasks to trashTasks
+        set(state => ({
+            tasks: state.tasks.filter(t => t.status !== 'done'),
+            trashTasks: [
+                ...doneTasks.map(t => ({ ...t, status: 'trash' as const, trash_date: now })),
+                ...state.trashTasks
+            ]
+        }))
+
+        // Batch update in Supabase
+        const { error } = await supabase
+            .from('tasks')
+            .update({ status: 'trash', trash_date: now })
+            .in('id', doneTaskIds)
+
+        if (error) {
+            console.error('Error clearing done tasks:', error)
+            // Revert is complex here, generally rely on refetch if major fail, or just log.
+            // For simplicity in this codebase, we log.
+            get().fetchTasks()
+        }
+    },
+
+    emptyTrash: async () => {
+        const trashIds = get().trashTasks.map(t => t.id)
+        if (trashIds.length === 0) return
+
+        set({ trashTasks: [] })
+
+        const { error } = await supabase
+            .from('tasks')
+            .delete()
+            .in('id', trashIds)
+
+        if (error) {
+            console.error('Error emptying trash:', error)
+            get().fetchTasks()
         }
     }
 }))
