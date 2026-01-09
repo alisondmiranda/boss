@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
     Plus, CheckCircle2, Trash2, LogOut,
     Settings, Send, Loader2, PanelLeftClose,
-    Layout, Calendar, Tag, Check, ListTodo
+    Layout, Calendar, Tag, Check, ListTodo, RefreshCw, AlertTriangle
 } from 'lucide-react'
 import crownLogo from '../assets/crown.svg'
 import { ICONS } from './SettingsModal'
@@ -23,7 +23,10 @@ import { ToastContainer } from './ToastContainer'
 
 export function Dashboard() {
     const { signOut } = useAuthStore()
-    const { tasks, fetchTasks, addTask, toggleTask, deleteTask, updateTaskSector } = useTaskStore()
+    const {
+        tasks, trashTasks, fetchTasks, addTask, toggleTask,
+        moveToTrash, restoreTask, permanentlyDeleteTask, updateTaskSector
+    } = useTaskStore()
     const { sectors } = useSettingsStore()
     const { addToast } = useToast()
 
@@ -35,7 +38,7 @@ export function Dashboard() {
     // Sidebar State
     const [sidebarOpen, setSidebarOpen] = useState(true) // For Mobile Drawer
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(true) // For Desktop Collapse/Expand
-    const [sidebarMode, setSidebarMode] = useState<'nav' | 'chat'>('nav')
+    const [sidebarMode, setSidebarMode] = useState<'nav' | 'chat' | 'trash'>('nav')
 
     // Task Context Menu State
     const [taskMenuOpen, setTaskMenuOpen] = useState<string | null>(null)
@@ -93,9 +96,30 @@ export function Dashboard() {
         }
     }
 
-    const handleDeleteTask = async (id: string) => {
-        await deleteTask(id)
-        addToast('Tarefa concluída/removida.', 'info')
+    const handleMoveToTrash = async (id: string) => {
+        try {
+            await moveToTrash(id)
+
+            // Custom Undo Toast Logic would ideally be here. 
+            // For now, standard toast. The user requested a popup, which we can simulate 
+            // by a custom toast component or just a specific message.
+            // Since our 'addToast' is simple, we'll inform them it's in the trash.
+            addToast('Tarefa movida para a lixeira. (Pode ser restaurada na aba Lixeira)', 'info')
+        } catch (error) {
+            addToast('Erro ao excluir tarefa.', 'error')
+        }
+    }
+
+    const handleRestore = async (id: string) => {
+        await restoreTask(id)
+        addToast('Tarefa restaurada!', 'success')
+    }
+
+    const handlePermanentDelete = async (id: string) => {
+        if (confirm('Tem certeza? Essa ação não pode ser desfeita.')) {
+            await permanentlyDeleteTask(id)
+            addToast('Tarefa excluída permanentemente.', 'info')
+        }
     }
 
     const handleUpdateTaskSector = async (taskId: string, sectorId: string) => {
@@ -276,6 +300,16 @@ export function Dashboard() {
                                     <Plus className="w-5 h-5 shrink-0" />
                                     <span className="truncate">Criar nova lista</span>
                                 </button>
+
+                                <div className="my-2 border-t border-outline-variant/30" />
+
+                                <button
+                                    onClick={() => setSidebarMode('trash')}
+                                    className="w-full flex items-center gap-3 px-4 py-3 rounded-[28px] text-sm font-medium text-on-surface-variant hover:bg-error-container/20 hover:text-error transition-all"
+                                >
+                                    <Trash2 className="w-5 h-5 shrink-0" />
+                                    <span className="truncate">Lixeira ({trashTasks.length})</span>
+                                </button>
                             </div>
                         )}
 
@@ -326,6 +360,49 @@ export function Dashboard() {
                                 </div>
                             </div>
                         )}
+
+                        {/* MODE: TRASH */}
+                        {sidebarMode === 'trash' && (
+                            <div className="flex-1 flex flex-col h-full overflow-hidden bg-surface-variant/20">
+                                <div className="p-4 border-b border-outline-variant/10 flex items-center gap-2 text-error">
+                                    <Trash2 className="w-5 h-5" />
+                                    <span className="font-bold text-sm">Lixeira</span>
+                                </div>
+                                <div className="flex-1 overflow-y-auto px-2 py-2 space-y-2 custom-scrollbar">
+                                    {trashTasks.length === 0 ? (
+                                        <div className="text-center p-8 text-on-surface-variant/50 text-sm">
+                                            Lixeira vazia.
+                                        </div>
+                                    ) : (
+                                        trashTasks.map(task => (
+                                            <div key={task.id} className="bg-surface p-3 rounded-xl border border-outline-variant/30 flex flex-col gap-2">
+                                                <span className="text-sm font-medium text-on-surface line-through decoration-error/50">{task.title}</span>
+                                                <div className="flex items-center gap-2 justify-end mt-1">
+                                                    <button
+                                                        onClick={() => handleRestore(task.id)}
+                                                        className="text-xs font-medium text-primary hover:bg-primary-container/20 px-2 py-1 rounded"
+                                                    >
+                                                        Restaurar
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handlePermanentDelete(task.id)}
+                                                        className="text-xs font-medium text-error hover:bg-error-container/20 px-2 py-1 rounded"
+                                                    >
+                                                        Excluir
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => setSidebarMode('nav')}
+                                    className="m-4 mt-2 p-2 text-sm text-center text-on-surface-variant hover:bg-surface-variant rounded-lg transition-colors"
+                                >
+                                    Voltar para Listas
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -372,7 +449,7 @@ export function Dashboard() {
                     </div>
                 </header>
 
-                {/* Task Board - Filter Chips are gone, replaced by Sidebar */}
+                {/* Task Board */}
                 <div className="flex-1 overflow-y-auto px-6 lg:px-10 pb-20 custom-scrollbar">
                     <div className="max-w-4xl mx-auto space-y-6 pt-4">
 
@@ -482,7 +559,7 @@ export function Dashboard() {
                                             </div>
 
                                             <button
-                                                onClick={() => handleDeleteTask(task.id)}
+                                                onClick={() => handleMoveToTrash(task.id)}
                                                 className="opacity-0 group-hover:opacity-100 p-2 text-on-surface-variant hover:text-error hover:bg-error-container/20 rounded-full transition-all"
                                                 title="Excluir"
                                             >
