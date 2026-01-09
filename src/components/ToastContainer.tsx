@@ -16,10 +16,10 @@ export function ToastContainer() {
                         exit={{ opacity: 0, x: 20, scale: 0.9 }}
                         layout
                         className={`pointer-events-auto min-w-[300px] p-4 rounded-xl shadow-lg border flex items-center gap-3 backdrop-blur-md ${toast.type === 'success'
-                                ? 'bg-[var(--md-sys-color-surface)]/90 border-green-200 text-green-800'
-                                : toast.type === 'error'
-                                    ? 'bg-red-50/90 border-red-200 text-red-800'
-                                    : 'bg-[var(--md-sys-color-surface)]/90 border-[var(--md-sys-color-outline-variant)] text-[var(--md-sys-color-on-surface)]'
+                            ? 'bg-surface/90 border-green-200 text-green-800'
+                            : toast.type === 'error'
+                                ? 'bg-red-50/90 border-red-200 text-red-800'
+                                : 'bg-surface/90 border-outline-variant text-on-surface'
                             }`}
                     >
                         {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />}
