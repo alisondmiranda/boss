@@ -23,7 +23,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
         sectors, addSector, updateSector, removeSector,
         userProfile, updateUserProfile
     } = useSettingsStore()
-    const { user, signInWithGoogle } = useAuthStore()
+    const { user, signInWithGoogle, signInWithApple, linkWithApple } = useAuthStore()
     const { addToast } = useToast()
     const [inputKey, setInputKey] = useState(geminiApiKey || '')
 
@@ -299,14 +299,27 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                             </button>
 
                                             <button
-                                                className="w-full p-3 rounded-xl border border-outline-variant bg-surface text-on-surface hover:bg-surface-variant flex items-center justify-between opacity-60 cursor-not-allowed transition-all"
-                                                title="Em breve"
+                                                onClick={async () => {
+                                                    if (!user) {
+                                                        await signInWithApple()
+                                                    } else if (!user.identities?.some(id => id.provider === 'apple')) {
+                                                        try {
+                                                            await linkWithApple()
+                                                            addToast('Apple vinculada com sucesso!', 'success')
+                                                        } catch (e) {
+                                                            addToast('Erro ao vincular conta Apple.', 'error')
+                                                        }
+                                                    }
+                                                }}
+                                                className={`w-full p-3 rounded-xl border flex items-center justify-between transition-all ${user?.identities?.some(id => id.provider === 'apple')
+                                                    ? 'bg-surface border-green-200 text-green-700'
+                                                    : 'bg-surface border-outline-variant text-on-surface hover:bg-surface-variant'}`}
                                             >
                                                 <span className="flex items-center gap-2 font-medium text-sm">
-                                                    <div className="w-2 h-2 rounded-full bg-current opacity-20" />
+                                                    <div className={`w-2 h-2 rounded-full ${user?.identities?.some(id => id.provider === 'apple') ? 'bg-green-500' : 'bg-on-surface/20'}`} />
                                                     Apple
                                                 </span>
-                                                <span className="text-[10px] bg-surface-variant px-2 py-0.5 rounded text-on-surface-variant">Em breve</span>
+                                                {user?.identities?.some(id => id.provider === 'apple') ? <Check className="w-4 h-4" /> : <LinkIcon className="w-4 h-4 opacity-50" />}
                                             </button>
                                         </div>
                                     </div>

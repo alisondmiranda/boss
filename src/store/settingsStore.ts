@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { supabase } from '../lib/supabase'
 
 export interface Sector {
     id: string
@@ -20,16 +21,18 @@ interface SettingsState {
     geminiApiKey: string | null
     sectors: Sector[]
     userProfile: UserProfile
-    
+
     setGeminiApiKey: (key: string) => void
     clearGeminiApiKey: () => void
-    
+
     addSector: (sector: Sector) => void
     updateSector: (id: string, updates: Partial<Sector>) => void
     removeSector: (id: string) => void
-    
+
     updateUserProfile: (updates: Partial<UserProfile>) => void
-    
+
+    _saveToSupabase: (forceState?: Partial<SettingsState>) => Promise<void>
+    fetchSettings: () => Promise<void>
     isConfigured: () => boolean
 }
 
@@ -56,15 +59,73 @@ export const useSettingsStore = create<SettingsState>()(
             setGeminiApiKey: (key) => set({ geminiApiKey: key }),
             clearGeminiApiKey: () => set({ geminiApiKey: null }),
 
-            addSector: (sector) => set((state) => ({ sectors: [...state.sectors, sector] })),
-            updateSector: (id, updates) => set((state) => ({
-                sectors: state.sectors.map(s => s.id === id ? { ...s, ...updates } : s)
-            })),
-            removeSector: (id) => set((state) => ({ sectors: state.sectors.filter(s => s.id !== id) })),
+            _saveToSupabase: async (forceState?: Partial<SettingsState>) => {
+                const user = (await supabase.auth.getUser()).data.user
+                if (!user) return
 
-            updateUserProfile: (updates) => set((state) => ({
-                userProfile: { ...state.userProfile, ...updates }
-            })),
+                const state = { ...get(), ...forceState }
+                await supabase.from('profiles').upsert({
+                    id: user.id,
+                    display_name: state.userProfile.displayName,
+                    avatar_type: state.userProfile.avatarType,
+                    selected_icon: state.userProfile.selectedIcon,
+                    custom_avatar_url: state.userProfile.customAvatarUrl,
+                    sectors: state.sectors,
+                    updated_at: new Date().toISOString()
+                })
+            },
+
+            addSector: async (sector) => {
+                const newSectors = [...get().sectors, sector]
+                set({ sectors: newSectors })
+                await get()._saveToSupabase({ sectors: newSectors })
+            },
+            updateSector: async (id, updates) => {
+                const newSectors = get().sectors.map(s => s.id === id ? { ...s, ...updates } : s)
+                set({ sectors: newSectors })
+                await get()._saveToSupabase({ sectors: newSectors })
+            },
+            removeSector: async (id) => {
+                const newSectors = get().sectors.filter(s => s.id !== id)
+                set({ sectors: newSectors })
+                await get()._saveToSupabase({ sectors: newSectors })
+            },
+
+            updateUserProfile: async (updates) => {
+                const newUserProfile = { ...get().userProfile, ...updates }
+                set({ userProfile: newUserProfile })
+                await get()._saveToSupabase({ userProfile: newUserProfile })
+            },
+
+            fetchSettings: async () => {
+                const user = (await supabase.auth.getUser()).data.user
+                if (!user) return
+
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single()
+
+                if (data && !error) {
+                    const updates: any = {}
+                    if (data.sectors) updates.sectors = data.sectors
+
+                    const profileUpdates: any = {}
+                    if (data.display_name !== undefined && data.display_name !== null) profileUpdates.displayName = data.display_name
+                    if (data.avatar_type) profileUpdates.avatarType = data.avatar_type
+                    if (data.selected_icon) profileUpdates.selectedIcon = data.selected_icon
+                    if (data.custom_avatar_url !== undefined) profileUpdates.customAvatarUrl = data.custom_avatar_url
+
+                    if (Object.keys(profileUpdates).length > 0) {
+                        updates.userProfile = { ...get().userProfile, ...profileUpdates }
+                    }
+
+                    if (Object.keys(updates).length > 0) {
+                        set(updates)
+                    }
+                }
+            },
 
             isConfigured: () => !!get().geminiApiKey
         }),

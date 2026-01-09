@@ -7,6 +7,8 @@ interface AuthState {
     session: Session | null
     loading: boolean
     signInWithGoogle: () => Promise<void>
+    signInWithApple: () => Promise<void>
+    linkWithApple: () => Promise<void>
     signOut: () => Promise<void>
     initializeAuth: () => Promise<void>
 }
@@ -20,14 +22,36 @@ export const useAuthStore = create<AuthState>((set) => ({
         try {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
-                options: {
-                    redirectTo: window.location.origin
-                }
+                options: { redirectTo: window.location.origin }
             })
             if (error) throw error
         } catch (error) {
-            console.error('Error signing in:', error)
-            alert('Erro ao conectar com Google. Verifique as configurações do Supabase.')
+            console.error('Error signing in with Google:', error)
+        }
+    },
+
+    signInWithApple: async () => {
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'apple',
+                options: { redirectTo: window.location.origin }
+            })
+            if (error) throw error
+        } catch (error) {
+            console.error('Error signing in with Apple:', error)
+        }
+    },
+
+    linkWithApple: async () => {
+        try {
+            const { error } = await supabase.auth.linkIdentity({
+                provider: 'apple',
+                options: { redirectTo: window.location.origin }
+            })
+            if (error) throw error
+        } catch (error) {
+            console.error('Error linking Apple account:', error)
+            throw error
         }
     },
 
@@ -39,13 +63,41 @@ export const useAuthStore = create<AuthState>((set) => ({
     initializeAuth: async () => {
         set({ loading: true })
 
-        // Check active session
-        const { data: { session } } = await supabase.auth.getSession()
-        set({ session, user: session?.user ?? null, loading: false })
+        try {
+            // Check active session
+            const { data: { session }, error } = await supabase.auth.getSession()
+
+            if (error) {
+                console.error('Session error:', error)
+                // If token is invalid, clear session to allow new login
+                if (error.message.includes('Refresh Token')) {
+                    await supabase.auth.signOut()
+                    set({ session: null, user: null, loading: false })
+                    return
+                }
+            }
+
+            set({ session, user: session?.user ?? null, loading: false })
+
+            // Initialize settings if user exists
+            if (session?.user) {
+                import('./settingsStore').then(mod => {
+                    mod.useSettingsStore.getState().fetchSettings()
+                }).catch(e => console.error('Failed to load settings:', e))
+            }
+        } catch (error) {
+            console.error('Initialization error:', error)
+            set({ loading: false })
+        }
 
         // Listen for changes
         supabase.auth.onAuthStateChange((_event, session) => {
             set({ session, user: session?.user ?? null, loading: false })
+            if (session?.user) {
+                import('./settingsStore').then(mod => {
+                    mod.useSettingsStore.getState().fetchSettings()
+                }).catch(e => console.error('Failed to load settings on auth change:', e))
+            }
         })
     }
 }))

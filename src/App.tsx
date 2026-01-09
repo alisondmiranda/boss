@@ -8,7 +8,7 @@ import appleLogo from './assets/apple.svg'
 import crownLogo from './assets/crown.svg'
 
 function App() {
-    const { user, loading, signInWithGoogle, initializeAuth } = useAuthStore()
+    const { user, loading, signInWithGoogle, signInWithApple, initializeAuth } = useAuthStore()
 
     useEffect(() => {
         initializeAuth()
@@ -66,7 +66,7 @@ function App() {
 
                     <LoginButton
                         provider="apple"
-                        onLogin={() => alert('Configuração de Login com Apple necessária no Supabase.')}
+                        onLogin={signInWithApple}
                     />
 
                     <div className="relative py-4">
