@@ -27,6 +27,7 @@ interface TaskState {
     permanentlyDeleteTask: (id: string) => Promise<void>
     clearDoneTasks: () => Promise<void>
     emptyTrash: () => Promise<void>
+    subscribeToTasks: () => () => void
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -295,6 +296,28 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         if (error) {
             console.error('Error emptying trash:', error)
             get().fetchTasks()
+        }
+    },
+
+    subscribeToTasks: () => {
+        const channel = supabase
+            .channel('tasks-realtime')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'tasks'
+                },
+                () => {
+                    // Refetch all to maintain sorting and trash separation correctly
+                    get().fetchTasks()
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
         }
     }
 }))

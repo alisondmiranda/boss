@@ -14,6 +14,27 @@ function App() {
         initializeAuth()
     }, [])
 
+    useEffect(() => {
+        if (!user) return
+
+        let unsubTasks: (() => void) | undefined
+        let unsubSettings: (() => void) | undefined
+
+        // Import stores dynamically to avoid circular dependencies if any
+        Promise.all([
+            import('./store/taskStore'),
+            import('./store/settingsStore')
+        ]).then(([taskMod, settingsMod]) => {
+            unsubTasks = taskMod.useTaskStore.getState().subscribeToTasks()
+            unsubSettings = settingsMod.useSettingsStore.getState().subscribeToSettings()
+        })
+
+        return () => {
+            unsubTasks?.()
+            unsubSettings?.()
+        }
+    }, [user])
+
     if (loading) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">

@@ -34,6 +34,7 @@ interface SettingsState {
     _saveToSupabase: (forceState?: Partial<SettingsState>) => Promise<void>
     fetchSettings: () => Promise<void>
     isConfigured: () => boolean
+    subscribeToSettings: () => () => void
 }
 
 const DEFAULT_SECTORS: Sector[] = [
@@ -127,7 +128,33 @@ export const useSettingsStore = create<SettingsState>()(
                 }
             },
 
-            isConfigured: () => !!get().geminiApiKey
+            isConfigured: () => !!get().geminiApiKey,
+
+            subscribeToSettings: () => {
+                const channel = supabase
+                    .channel('settings-realtime')
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'profiles'
+                        },
+                        (payload) => {
+                            // Only update if it's our own profile
+                            supabase.auth.getUser().then(({ data }) => {
+                                if (data.user?.id === payload.new.id) {
+                                    get().fetchSettings()
+                                }
+                            })
+                        }
+                    )
+                    .subscribe()
+
+                return () => {
+                    supabase.removeChannel(channel)
+                }
+            }
         }),
         {
             name: 'boss-settings',
