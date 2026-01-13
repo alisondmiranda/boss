@@ -227,6 +227,9 @@ export function Dashboard() {
             case 'stone': return 'bg-stone-100 text-stone-700 border-stone-200'
             case 'zinc': return 'bg-zinc-100 text-zinc-700 border-zinc-200'
             case 'gray': return 'bg-gray-100 text-gray-700 border-gray-200'
+            case 'brown': return 'bg-amber-900/10 text-amber-900 border-amber-900/20'
+            case 'black': return 'bg-neutral-900 text-neutral-100 border-neutral-700'
+            case 'white': return 'bg-white text-slate-900 border-slate-200 shadow-sm'
             default: return 'bg-slate-100 text-slate-700 border-slate-200'
         }
     }

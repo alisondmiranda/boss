@@ -2,7 +2,8 @@ import {
     Briefcase, Heart, User, Home, DollarSign, Book, Plane, Star, Zap,
     Coffee, Music, Gamepad, Bookmark, Tag,
     Crown, Smile, UserCircle, Ghost, Cat, Dog, Bird, Component,
-    ShoppingBag, Dumbbell, Clapperboard, Gift, Globe, Camera, Wrench
+    ShoppingBag, Dumbbell, Clapperboard, Gift, Globe, Camera, Wrench,
+    User, Rocket, Trophy, Fish, Bug, Rabbit, Turtle, Baby, Skull
 } from 'lucide-react'
 import { Sector } from '../store/settingsStore'
 
@@ -32,38 +33,51 @@ export const ICONS = [
 
 export const AVATAR_ICONS = [
     { value: 'crown', label: 'Coroa', icon: Crown },
-    { value: 'smile', label: 'Sorriso', icon: Smile },
     { value: 'user-circle', label: 'Usuário', icon: UserCircle },
+    { value: 'baby', label: 'Bebê', icon: Baby },
+    { value: 'smile', label: 'Sorriso', icon: Smile },
     { value: 'ghost', label: 'Fantasma', icon: Ghost },
+    { value: 'skull', label: 'Caveira', icon: Skull },
     { value: 'cat', label: 'Gato', icon: Cat },
     { value: 'dog', label: 'Cachorro', icon: Dog },
+    { value: 'rabbit', label: 'Coelho', icon: Rabbit },
     { value: 'bird', label: 'Pássaro', icon: Bird },
-    { value: 'component', label: 'Tech', icon: Component },
-    { value: 'zap', label: 'Energia', icon: Zap },
-    { value: 'star', label: 'Estrela', icon: Star },
-    { value: 'music', label: 'Música', icon: Music },
-    { value: 'gamepad', label: 'Gamer', icon: Gamepad },
+    { value: 'turtle', label: 'Tartaruga', icon: Turtle },
+    { value: 'fish', label: 'Peixe', icon: Fish },
+    { value: 'bug', label: 'Bug', icon: Bug },
+    { value: 'rocket', label: 'Foguete', icon: Rocket },
+    { value: 'trophy', label: 'Troféu', icon: Trophy },
 ]
 
 export const COLORS: { value: Sector['color'], hex: string, label: string }[] = [
-    { value: 'slate', hex: '#64748b', label: 'Cinza' },
+    // Neutros
+    { value: 'slate', hex: '#64748b', label: 'Slate' },
+    { value: 'gray', hex: '#6b7280', label: 'Cinza' },
+    { value: 'zinc', hex: '#71717a', label: 'Zinco' },
+    { value: 'stone', hex: '#78716c', label: 'Pedra' },
+    { value: 'black', hex: '#1c1917', label: 'Preto' },
+    { value: 'white', hex: '#ffffff', label: 'Branco' },
+
+    // Quentes
     { value: 'red', hex: '#ef4444', label: 'Vermelho' },
     { value: 'orange', hex: '#f97316', label: 'Laranja' },
     { value: 'amber', hex: '#f59e0b', label: 'Âmbar' },
     { value: 'yellow', hex: '#eab308', label: 'Amarelo' },
+    { value: 'brown', hex: '#78350f', label: 'Marrom' },
+
+    // Frios & Frescos
     { value: 'lime', hex: '#84cc16', label: 'Lima' },
     { value: 'green', hex: '#10b981', label: 'Verde' },
     { value: 'teal', hex: '#14b8a6', label: 'Verde Água' },
     { value: 'cyan', hex: '#06b6d4', label: 'Ciano' },
     { value: 'sky', hex: '#0ea5e9', label: 'Céu' },
     { value: 'blue', hex: '#3b82f6', label: 'Azul' },
+
+    // Roxo & Rosa
     { value: 'indigo', hex: '#6366f1', label: 'Índigo' },
     { value: 'violet', hex: '#8b5cf6', label: 'Violeta' },
     { value: 'purple', hex: '#a855f7', label: 'Roxo' },
     { value: 'fuchsia', hex: '#d946ef', label: 'Fúcsia' },
     { value: 'pink', hex: '#ec4899', label: 'Rosa' },
     { value: 'rose', hex: '#f43f5e', label: 'Rose' },
-    { value: 'stone', hex: '#78716c', label: 'Pedra' },
-    { value: 'zinc', hex: '#71717a', label: 'Zinco' },
-    { value: 'gray', hex: '#6b7280', label: 'Cinza Escuro' },
 ]

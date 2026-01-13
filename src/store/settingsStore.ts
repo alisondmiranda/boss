@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 export interface Sector {
     id: string
     label: string
-    color: 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'pink' | 'slate' | 'indigo' | 'teal' | 'cyan' | 'amber' | 'yellow' | 'lime' | 'sky' | 'violet' | 'fuchsia' | 'rose' | 'stone' | 'zinc' | 'gray'
+    color: 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'pink' | 'slate' | 'indigo' | 'teal' | 'cyan' | 'amber' | 'yellow' | 'lime' | 'sky' | 'violet' | 'fuchsia' | 'rose' | 'stone' | 'zinc' | 'gray' | 'brown' | 'black' | 'white'
     icon: string
 }
 
