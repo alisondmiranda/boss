@@ -51,6 +51,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
     const [showAllAvatars, setShowAllAvatars] = useState(false)
     const [showAllColors, setShowAllColors] = useState(false)
     const [showAllIcons, setShowAllIcons] = useState(false)
+    const [isSectorFormOpen, setIsSectorFormOpen] = useState(false)
 
     useEffect(() => {
         if (isOpen) {
@@ -72,6 +73,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
         setSectorName('')
         setSectorColor('blue')
         setSectorIcon('tag')
+        setIsSectorFormOpen(false)
     }
 
     const handleSaveKey = () => {
@@ -131,6 +133,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
         setSectorName(sector.label)
         setSectorColor(sector.color)
         setSectorIcon(sector.icon)
+        setIsSectorFormOpen(true)
         scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
@@ -336,105 +339,31 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                             )}
 
                             {activeTab === 'sectors' && (
-                                <div className="space-y-6">
-                                    <form onSubmit={handleSaveSector} className={`space-y-4 bg-surface p-5 rounded-[20px] shadow-1 border transition-colors ${editingId ? 'border-primary ring-1 ring-primary/20' : 'border-outline-variant/50'}`}>
-                                        <div className="flex justify-between items-center mb-2">
-                                            <h3 className="text-sm font-bold text-on-surface">
-                                                {editingId ? 'Editar Lista' : 'Nova Lista'}
-                                            </h3>
-                                            {editingId && (
-                                                <button
-                                                    type="button"
-                                                    onClick={resetForm}
-                                                    className="text-xs text-primary hover:underline"
-                                                >
-                                                    Cancelar
-                                                </button>
-                                            )}
-                                        </div>
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between px-1">
+                                        <h3 className="text-sm font-bold text-on-surface">Minhas Listas</h3>
+                                        <button
+                                            onClick={() => { resetForm(); setIsSectorFormOpen(true); }}
+                                            className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-bold hover:bg-primary/20 transition-all flex items-center gap-1"
+                                        >
+                                            <Plus className="w-3 h-3" strokeWidth={3} />
+                                            NOVA LISTA
+                                        </button>
+                                    </div>
 
-                                        <div className="flex gap-3">
-                                            <input
-                                                type="text"
-                                                value={sectorName}
-                                                onChange={(e) => setSectorName(e.target.value)}
-                                                placeholder="Nome (ex: Viagens)"
-                                                className="flex-1 input-field !bg-surface-variant/50"
-                                            />
-                                            <button
-                                                type="submit"
-                                                disabled={!sectorName}
-                                                className="h-[50px] w-[50px] bg-primary text-on-primary rounded-[12px] flex items-center justify-center hover:shadow-2 disabled:opacity-50 disabled:shadow-none transition-all flex-shrink-0"
-                                            >
-                                                {editingId ? <Check className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
-                                            </button>
-                                        </div>
-
-                                        {/* Colors */}
-                                        <div>
-                                            <div className="flex items-center justify-between mb-3">
-                                                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Cor do Marcador</label>
+                                    <div className="grid gap-2">
+                                        {sectors.length === 0 ? (
+                                            <div className="text-center py-10 border-2 border-dashed border-outline-variant/30 rounded-[20px]">
+                                                <p className="text-sm text-on-surface-variant font-medium">Nenhuma lista criada.</p>
                                                 <button
-                                                    type="button"
-                                                    onClick={() => setShowAllColors(!showAllColors)}
-                                                    className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
+                                                    onClick={() => setIsSectorFormOpen(true)}
+                                                    className="text-primary text-xs font-bold mt-2 hover:underline"
                                                 >
-                                                    {showAllColors ? 'Ver menos' : 'Ver todas'}
-                                                    {showAllColors ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                                    Começar agora
                                                 </button>
                                             </div>
-                                            <div className="grid grid-cols-11 gap-2">
-                                                {COLORS.slice(0, showAllColors ? undefined : 11).map(c => (
-                                                    <button
-                                                        key={c.value}
-                                                        type="button"
-                                                        onClick={() => setSectorColor(c.value)}
-                                                        className={`w-full aspect-square rounded-full transition-all flex items-center justify-center border-2 border-transparent hover:border-outline-variant/50 ${sectorColor === c.value ? 'scale-105 ring-2 ring-offset-2 ring-primary shadow-sm' : 'hover:scale-105 opacity-80 hover:opacity-100'} ${c.value === 'white' ? '!border-outline-variant' : ''}`}
-                                                        style={{ backgroundColor: c.hex }}
-                                                        title={c.label}
-                                                    >
-                                                        {sectorColor === c.value && <Check className={`w-4 h-4 drop-shadow-md ${c.value === 'white' ? 'text-black' : 'text-white'}`} />}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Icons */}
-                                        <div>
-                                            <div className="flex items-center justify-between mb-3">
-                                                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Ícone</label>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowAllIcons(!showAllIcons)}
-                                                    className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
-                                                >
-                                                    {showAllIcons ? 'Ver menos' : 'Ver todos'}
-                                                    {showAllIcons ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                                                </button>
-                                            </div>
-                                            <div className="grid grid-cols-8 gap-2">
-                                                {ICONS.slice(0, showAllIcons ? undefined : 8).map(i => (
-                                                    <button
-                                                        key={i.value}
-                                                        type="button"
-                                                        onClick={() => setSectorIcon(i.value)}
-                                                        className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all ${sectorIcon === i.value
-                                                            ? 'bg-secondary-container text-on-secondary-container shadow-sm ring-1 ring-secondary'
-                                                            : 'bg-surface-variant/50 text-on-surface-variant hover:bg-surface-variant hover:text-on-surface'
-                                                            }`}
-                                                        title={i.label}
-                                                    >
-                                                        <i.icon className="w-5 h-5" />
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </form>
-
-                                    <div className="space-y-3">
-                                        <h3 className="text-sm font-bold text-on-surface px-1">Suas Listas</h3>
-                                        <div className="grid gap-2">
-                                            {sectors.map(sector => {
+                                        ) : (
+                                            sectors.map(sector => {
                                                 const Icon = ICONS.find(i => i.value === sector.icon)?.icon || Tag
                                                 return (
                                                     <div key={sector.id} className={`flex items-center justify-between p-3 bg-surface border rounded-[14px] group transition-all shadow-sm ${editingId === sector.id ? 'border-primary bg-primary-container/10' : 'border-outline-variant hover:border-primary/50'}`}>
@@ -454,8 +383,12 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                                                 <Pencil className="w-4 h-4" />
                                                             </button>
                                                             <button
-                                                                onClick={() => removeSector(sector.id)}
-                                                                className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full transition-all"
+                                                                onClick={() => {
+                                                                    if (confirm(`Excluir a lista "${sector.label}"?`)) {
+                                                                        removeSector(sector.id)
+                                                                    }
+                                                                }}
+                                                                className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container/10 rounded-full transition-all"
                                                                 title="Excluir"
                                                             >
                                                                 <Trash2 className="w-4 h-4" />
@@ -463,9 +396,127 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                                         </div>
                                                     </div>
                                                 )
-                                            })}
-                                        </div>
+                                            })
+                                        )}
                                     </div>
+
+                                    {/* Sector Form Popup Overlay */}
+                                    <AnimatePresence>
+                                        {isSectorFormOpen && (
+                                            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                                                <motion.div
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                    exit={{ opacity: 0 }}
+                                                    onClick={resetForm}
+                                                    className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                                                />
+                                                <motion.div
+                                                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                                                    className="relative w-full max-w-sm bg-surface rounded-[24px] shadow-5 border border-outline-variant overflow-hidden"
+                                                >
+                                                    <form onSubmit={handleSaveSector} className="p-6 space-y-6">
+                                                        <div className="flex justify-between items-center">
+                                                            <h3 className="text-lg font-bold text-on-surface">
+                                                                {editingId ? 'Editar Lista' : 'Nova Lista'}
+                                                            </h3>
+                                                            <button
+                                                                type="button"
+                                                                onClick={resetForm}
+                                                                className="p-2 hover:bg-surface-variant rounded-full text-on-surface-variant transition-colors"
+                                                            >
+                                                                <X className="w-5 h-5" />
+                                                            </button>
+                                                        </div>
+
+                                                        <div className="space-y-4">
+                                                            <div>
+                                                                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">Nome da Lista</label>
+                                                                <input
+                                                                    type="text"
+                                                                    autoFocus
+                                                                    value={sectorName}
+                                                                    onChange={(e) => setSectorName(e.target.value)}
+                                                                    placeholder="Ex: Trabalho, Compras..."
+                                                                    className="w-full input-field !bg-surface-variant/50"
+                                                                />
+                                                            </div>
+
+                                                            {/* Colors */}
+                                                            <div>
+                                                                <div className="flex items-center justify-between mb-3">
+                                                                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Cor do Marcador</label>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setShowAllColors(!showAllColors)}
+                                                                        className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
+                                                                    >
+                                                                        {showAllColors ? 'Ver menos' : 'Ver todas'}
+                                                                        {showAllColors ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                                                    </button>
+                                                                </div>
+                                                                <div className="grid grid-cols-10 gap-2">
+                                                                    {COLORS.slice(0, showAllColors ? undefined : 10).map(c => (
+                                                                        <button
+                                                                            key={c.value}
+                                                                            type="button"
+                                                                            onClick={() => setSectorColor(c.value)}
+                                                                            className={`w-full aspect-square rounded-full transition-all flex items-center justify-center border-2 border-transparent hover:border-outline-variant/50 ${sectorColor === c.value ? 'ring-2 ring-offset-2 ring-primary shadow-sm scale-110' : 'opacity-80 hover:opacity-100 hover:scale-105'} ${c.value === 'white' ? '!border-outline-variant' : ''}`}
+                                                                            style={{ backgroundColor: c.hex }}
+                                                                        >
+                                                                            {sectorColor === c.value && <Check className={`w-3 h-3 drop-shadow-md ${c.value === 'white' ? 'text-black' : 'text-white'}`} />}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Icons */}
+                                                            <div>
+                                                                <div className="flex items-center justify-between mb-3">
+                                                                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Ícone</label>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setShowAllIcons(!showAllIcons)}
+                                                                        className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
+                                                                    >
+                                                                        {showAllIcons ? 'Ver menos' : 'Ver todos'}
+                                                                        {showAllIcons ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                                                    </button>
+                                                                </div>
+                                                                <div className="grid grid-cols-8 gap-2">
+                                                                    {ICONS.slice(0, showAllIcons ? undefined : 8).map(i => (
+                                                                        <button
+                                                                            key={i.value}
+                                                                            type="button"
+                                                                            onClick={() => setSectorIcon(i.value)}
+                                                                            className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all ${sectorIcon === i.value
+                                                                                ? 'bg-secondary-container text-on-secondary-container shadow-sm ring-1 ring-secondary'
+                                                                                : 'bg-surface-variant/50 text-on-surface-variant hover:bg-surface-variant hover:text-on-surface'
+                                                                                }`}
+                                                                        >
+                                                                            <i.icon className="w-4 h-4" />
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="pt-2">
+                                                            <button
+                                                                type="submit"
+                                                                disabled={!sectorName}
+                                                                className="w-full py-4 bg-primary text-on-primary rounded-[16px] font-bold shadow-2 hover:shadow-3 active:scale-[0.98] transition-all disabled:opacity-50"
+                                                            >
+                                                                {editingId ? 'Salvar Edição' : 'Criar Lista'}
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </motion.div>
+                                            </div>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
                             )}
                         </div>

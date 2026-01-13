@@ -82,9 +82,14 @@ export function TaskItem({
     return (
         <motion.div
             layout
-            initial={{ opacity: 0, y: 10, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{
+                duration: 0.2,
+                ease: "easeInOut",
+                layout: { type: "tween", duration: 0.2, ease: "easeInOut" }
+            }}
             className="card-filled !bg-surface flex items-center gap-4 group hover:shadow-1 transition-all border border-transparent hover:border-outline-variant/30 relative"
         >
             <button

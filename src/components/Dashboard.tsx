@@ -288,9 +288,10 @@ export function Dashboard() {
                 <div className="flex-1 overflow-hidden relative w-full flex flex-col py-4 gap-2">
                     <div className="space-y-1">
                         {/* Tasks (Nav) */}
-                        <button
+                        <div
                             onClick={() => { setSidebarMode('nav'); setFilter([]); }}
-                            className={`w-full flex items-center rounded-r-[16px] text-sm font-medium transition-colors relative ${sidebarMode === 'nav' && filter.length === 0 ? 'bg-primary/10 text-primary' : 'text-on-surface hover:bg-surface-variant/30'}`}
+                            className={`w-full flex items-center rounded-r-[16px] text-sm font-medium transition-colors relative cursor-pointer group/item ${sidebarMode === 'nav' && filter.length === 0 ? 'bg-primary/10 text-primary' : 'text-on-surface hover:bg-surface-variant/30'}`}
+                            role="button"
                         >
                             {/* Active Indicator Bar */}
                             {sidebarMode === 'nav' && filter.length === 0 && (
@@ -301,17 +302,28 @@ export function Dashboard() {
                                 <ListTodo className="w-5 h-5" />
                             </div>
 
-                            <motion.span
+                            <motion.div
                                 initial={false}
                                 animate={{
                                     opacity: isSidebarExpanded ? 1 : 0,
                                     x: isSidebarExpanded ? 0 : -10
                                 }}
-                                className="truncate overflow-hidden whitespace-nowrap"
+                                className="flex-1 flex items-center justify-between pr-4 overflow-hidden"
                             >
-                                Tarefas
-                            </motion.span>
-                        </button>
+                                <span className="truncate whitespace-nowrap">Tarefas</span>
+
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSidebarMode('trash');
+                                    }}
+                                    className={`p-1.5 rounded-full transition-all opacity-0 group-hover/item:opacity-100 ${sidebarMode === 'trash' ? 'bg-error/10 text-error opacity-100' : 'text-on-surface-variant/50 hover:text-error hover:bg-error/10'}`}
+                                    title="Lixeira"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </motion.div>
+                        </div>
 
                         {/* Done */}
                         <button
@@ -375,13 +387,16 @@ export function Dashboard() {
                             animate={{ opacity: isSidebarExpanded ? 1 : 0, height: isSidebarExpanded ? 'auto' : 0 }}
                             className="px-6 pb-2 pt-4 flex items-center justify-between group overflow-hidden"
                         >
-                            <span className="text-xs font-bold text-on-surface-variant/50 uppercase tracking-widest whitespace-nowrap">Listas</span>
-                            <button
-                                onClick={() => openSettings('sectors')}
-                                className="p-1 hover:bg-surface-variant/50 rounded-full text-on-surface-variant/50 hover:text-primary transition-colors"
-                            >
-                                <Plus className="w-3.5 h-3.5" />
-                            </button>
+                            <span className="text-xs font-bold text-on-surface-variant/70 uppercase tracking-[0.1em]">Listas</span>
+                            <div className="flex items-center gap-0.5">
+                                <button
+                                    onClick={() => openSettings('sectors')}
+                                    className="p-1 hover:bg-surface-variant/50 rounded-full text-on-surface-variant/50 hover:text-primary transition-colors"
+                                    title="Nova Lista"
+                                >
+                                    <Plus className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
                         </motion.div>
 
                         {sectors.map((s) => {
@@ -428,43 +443,14 @@ export function Dashboard() {
                     </div>
                 </div>
 
-                {/* Trash at Bottom */}
-                <div className="mt-auto pb-4 pt-3 mx-4 border-t border-outline-variant/50">
-                    <button
-                        onClick={() => setSidebarMode('trash')}
-                        className={`w-full flex items-center rounded-[16px] text-sm font-medium transition-colors relative ${sidebarMode === 'trash' ? 'bg-error/10 text-error' : 'text-on-surface-variant hover:text-error hover:bg-error/5'}`}
-                    >
-                        {sidebarMode === 'trash' && (
-                            <div className="absolute left-0 top-2 bottom-2 w-1 bg-error rounded-r-full" />
-                        )}
-
-                        <div className="w-[72px] h-12 shrink-0 flex items-center justify-center">
-                            <Trash2 className="w-5 h-5" />
-                        </div>
-
-                        <motion.span
-                            initial={false}
-                            animate={{ opacity: isSidebarExpanded ? 1 : 0, x: isSidebarExpanded ? 0 : -10 }}
-                            className="truncate overflow-hidden whitespace-nowrap flex-1 text-left"
-                        >
-                            Lixeira
-                        </motion.span>
-
-                        {isSidebarExpanded && (
-                            <motion.span
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: trashTasksCount > 0 ? 1 : 0, scale: trashTasksCount > 0 ? 1 : 0.8 }}
-                                className={`mr-4 text-xs font-bold px-2 py-0.5 rounded-full ${sidebarMode === 'trash' ? 'bg-error/20 text-error' : 'bg-surface-variant text-on-surface-variant'}`}
-                            >
-                                {trashTasksCount}
-                            </motion.span>
-                        )}
-                    </button>
+                {/* Sidebar Footer */}
+                <div className="mt-auto px-6 py-6 border-t border-outline-variant/30 bg-surface-variant/5">
+                    <p className="text-[10px] text-on-surface-variant/30 font-bold uppercase tracking-widest pl-1">Boss v1.2.0</p>
                 </div>
             </motion.aside>
 
             {/* RIGHT: Main Content Section */}
-            <main className="flex-1 flex flex-col relative overflow-hidden bg-background">
+            < main className="flex-1 flex flex-col relative overflow-hidden bg-background" >
                 {/* Header */}
                 < header className="px-8 py-6 flex justify-between items-start shrink-0 z-40 relative" >
                     <div>
@@ -640,6 +626,26 @@ export function Dashboard() {
                         (sidebarMode === 'nav' || sidebarMode === 'done') && (
                             <div className="max-w-4xl mx-auto space-y-6 pt-4">
 
+                                {/* Quick Filters / Navigation Buttons */}
+                                {sidebarMode === 'nav' && (
+                                    <div className="flex gap-2 justify-end mb-4 px-2">
+                                        <button
+                                            onClick={() => setSidebarMode('done')}
+                                            className="px-4 py-2 rounded-full bg-surface border border-outline-variant/50 text-on-surface-variant hover:bg-surface-variant/30 hover:text-primary transition-colors flex items-center gap-2 text-sm font-medium shadow-sm hover:shadow-md"
+                                        >
+                                            <CheckCircle2 className="w-4 h-4" />
+                                            Concluídas
+                                        </button>
+                                        <button
+                                            onClick={() => setSidebarMode('trash')}
+                                            className="px-4 py-2 rounded-full bg-surface border border-outline-variant/50 text-on-surface-variant hover:bg-error/5 hover:text-error hover:border-error/20 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm hover:shadow-md"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            Lixeira
+                                        </button>
+                                    </div>
+                                )}
+
                                 {/* Input Area (Only in Nav) */}
                                 {sidebarMode === 'nav' && (
                                     <form onSubmit={handleAddTask} className="relative group mb-8">
@@ -736,14 +742,23 @@ export function Dashboard() {
                                             <h2 className="text-xl font-bold text-on-surface">Tarefas Concluídas</h2>
                                             <span className="text-sm font-medium text-on-surface-variant bg-surface-variant/50 px-2 py-0.5 rounded-full">{doneTasksCount}</span>
                                         </div>
-                                        {doneTasksCount > 0 && (
+                                        <div className="flex gap-2">
                                             <button
-                                                onClick={handleClearDone}
-                                                className="text-sm font-medium text-error hover:bg-error/10 px-3 py-1.5 rounded-lg transition-colors"
+                                                onClick={() => setSidebarMode('nav')}
+                                                className="text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-surface-variant/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
                                             >
-                                                Limpar Concluídas
+                                                <ListTodo className="w-4 h-4" />
+                                                Tarefas
                                             </button>
-                                        )}
+                                            {doneTasksCount > 0 && (
+                                                <button
+                                                    onClick={handleClearDone}
+                                                    className="text-sm font-medium text-error hover:bg-error/10 px-3 py-1.5 rounded-lg transition-colors"
+                                                >
+                                                    Limpar Concluídas
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
 
@@ -806,14 +821,23 @@ export function Dashboard() {
                                         <h2 className="text-xl font-bold text-on-surface">Lixeira</h2>
                                         <span className="text-sm font-medium text-on-surface-variant bg-surface-variant/50 px-2 py-0.5 rounded-full">{trashTasksCount}</span>
                                     </div>
-                                    {trashTasksCount > 0 && (
+                                    <div className="flex gap-2">
                                         <button
-                                            onClick={handleEmptyTrash}
-                                            className="text-sm font-medium text-error hover:bg-error/10 px-3 py-1.5 rounded-lg transition-colors border border-error/20"
+                                            onClick={() => setSidebarMode('nav')}
+                                            className="text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-surface-variant/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
                                         >
-                                            Esvaziar Lixeira
+                                            <ListTodo className="w-4 h-4" />
+                                            Tarefas
                                         </button>
-                                    )}
+                                        {trashTasksCount > 0 && (
+                                            <button
+                                                onClick={handleEmptyTrash}
+                                                className="text-sm font-medium text-error hover:bg-error/10 px-3 py-1.5 rounded-lg transition-colors border border-error/20"
+                                            >
+                                                Esvaziar Lixeira
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className="space-y-3">
