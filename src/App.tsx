@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, Loader2, Mail, Lock, User, Github, Linkedin, X } from 'lucide-react'
+import { Loader2, Mail, Lock, Github, X } from 'lucide-react'
 import { useAuthStore } from './store/authStore'
 import { useTaskStore } from './store/taskStore'
 import { useSettingsStore } from './store/settingsStore'
@@ -371,24 +371,6 @@ function LegalModal({ type, onClose }: { type: 'terms' | 'privacy', onClose: () 
     )
 }
 
-function LoginButton({ onLogin, provider, label, icon: Icon }: { onLogin: () => void, provider: string, label: string, icon?: any }) {
-    return (
-        <motion.button
-            whileHover={{ scale: 1.02, backgroundColor: 'rgba(var(--primary-rgb), 0.05)' }}
-            whileTap={{ scale: 0.98 }}
-            onClick={onLogin}
-            className="group relative h-10 rounded-xl flex items-center justify-center bg-surface border border-outline-variant hover:border-primary/40 transition-all"
-        >
-            <div className="flex items-center gap-2">
-                <div className="w-4 h-4 flex items-center justify-center shrink-0">
-                    {Icon && <Icon className="w-full h-full text-on-surface/60 group-hover:text-primary transition-colors" />}
-                </div>
-                <span className="text-[11px] font-bold tracking-tight text-on-surface/60 group-hover:text-on-surface transition-colors">
-                    {label}
-                </span>
-            </div>
-        </motion.button>
-    )
-}
+
 
 export default App

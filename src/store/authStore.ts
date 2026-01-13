@@ -9,7 +9,7 @@ interface AuthState {
     signInWithGoogle: () => Promise<void>
     signInWithProvider: (provider: 'github' | 'twitter' | 'facebook' | 'linkedin_oidc' | 'discord') => Promise<void>
     linkIdentity: (provider: 'google' | 'github' | 'twitter' | 'facebook' | 'linkedin_oidc' | 'discord') => Promise<void>
-    unlinkIdentity: (identityId: string) => Promise<void>
+    unlinkIdentity: (identity: any) => Promise<void>
     signInWithEmail: (email: string, password: string) => Promise<void>
     signUpWithEmail: (email: string, password: string) => Promise<void>
     signOut: () => Promise<void>
@@ -63,9 +63,9 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
     },
 
-    unlinkIdentity: async (identityId: string) => {
+    unlinkIdentity: async (identity: any) => {
         try {
-            const { error } = await supabase.auth.unlinkIdentity(identityId)
+            const { error } = await supabase.auth.unlinkIdentity(identity)
             if (error) throw error
 
             // Refresh session to update user identities

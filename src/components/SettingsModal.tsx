@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-    Pencil, Link as LinkIcon, Github, Linkedin, X, Settings, AlertCircle, ExternalLink, Check, Trash2, Plus, Tag, Key
+    Pencil, Link as LinkIcon, Github, X, Settings, AlertCircle, ExternalLink, Check, Trash2, Plus, Tag, Key
 } from 'lucide-react'
 import { useSettingsStore, Sector } from '../store/settingsStore'
 import { useToast } from '../store/toastStore'
@@ -23,7 +23,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
         userProfile, updateUserProfile
     } = useSettingsStore()
 
-    const { user, signInWithGoogle, linkIdentity, unlinkIdentity } = useAuthStore()
+    const { user, linkIdentity, unlinkIdentity } = useAuthStore()
     const { addToast } = useToast()
     const [inputKey, setInputKey] = useState(geminiApiKey || '')
 
@@ -480,7 +480,7 @@ interface ProviderLinkButtonProps {
     icon?: any
     user: any
     onLink: () => Promise<void>
-    onUnlink: (identityId: string) => Promise<void>
+    onUnlink: (identity: any) => Promise<void>
 }
 
 function ProviderLinkButton({ provider, label, icon: Icon, user, onLink, onUnlink }: ProviderLinkButtonProps) {
@@ -494,7 +494,7 @@ function ProviderLinkButton({ provider, label, icon: Icon, user, onLink, onUnlin
         try {
             if (isLinked) {
                 if (confirm(`Desvincular conta do ${label}?`)) {
-                    await onUnlink(identity.identity_id)
+                    await onUnlink(identity)
                     addToast(`${label} desvinculado.`, 'success')
                 }
             } else {
