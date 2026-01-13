@@ -7,6 +7,29 @@ import {
 } from 'lucide-react'
 import { Sector } from '../store/settingsStore'
 
+const Lion = ({ className }: { className?: string }) => (
+    <svg
+        xmlns= "http://www.w3.org/2000/svg"
+width = "24"
+height = "24"
+viewBox = "0 0 24 24"
+fill = "none"
+stroke = "currentColor"
+strokeWidth = "2"
+strokeLinecap = "round"
+strokeLinejoin = "round"
+className = { className }
+    >
+    <path d="M12 2a10 10 0 0 1 10 10a10 10 0 0 1-10 10a10 10 0 0 1-10-10a10 10 0 0 1 10-10" strokeDasharray = "1 3" />
+        <circle cx="12" cy = "12" r = "6" />
+            <path d="M9 11h.01" />
+                <path d="M15 11h.01" />
+                    <path d="M12 14a2 2 0 0 0 0 3" />
+                        <path d="M7 7l-1-1" />
+                            <path d="M17 7l1-1" />
+                                </svg>
+)
+
 export const ICONS = [
     { value: 'briefcase', icon: Briefcase, label: 'Trabalho' },
     { value: 'heart', icon: Heart, label: 'Saúde' },
@@ -39,6 +62,7 @@ export const AVATAR_ICONS = [
     { value: 'ghost', label: 'Fantasma', icon: Ghost },
     { value: 'skull', label: 'Caveira', icon: Skull },
     { value: 'cat', label: 'Gato', icon: Cat },
+    { value: 'lion', label: 'Leão', icon: Lion },
     { value: 'dog', label: 'Cachorro', icon: Dog },
     { value: 'rabbit', label: 'Coelho', icon: Rabbit },
     { value: 'bird', label: 'Pássaro', icon: Bird },
