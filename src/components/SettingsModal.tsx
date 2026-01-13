@@ -1,7 +1,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-Pencil, Link as LinkIcon, Github, X, Settings, AlertCircle, ExternalLink, Check, Trash2, Plus, Tag, Key,
+import {
+    Pencil, Link as LinkIcon, Github, X, Settings, AlertCircle, ExternalLink, Check, Trash2, Plus, Tag, Key,
     ChevronDown, ChevronUp
 } from 'lucide-react'
 import { useSettingsStore, Sector } from '../store/settingsStore'
