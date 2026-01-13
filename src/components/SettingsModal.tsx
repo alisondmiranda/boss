@@ -9,7 +9,7 @@ import { useSettingsStore, Sector } from '../store/settingsStore'
 import { useToast } from '../store/toastStore'
 import { useAuthStore } from '../store/authStore'
 import crownLogo from '../assets/crown.svg'
-import { ICONS, AVATAR_ICONS, COLORS } from '../constants/icons'
+import { ICONS, AVATAR_ICONS, COLORS } from '../constants/icons.tsx'
 
 interface SettingsModalProps {
     isOpen: boolean

@@ -7,7 +7,7 @@ import {
     MessageCircle, CheckCircle2, PanelLeftClose, Check
 } from 'lucide-react'
 import crownLogo from '../assets/crown.svg'
-import { AVATAR_ICONS, ICONS } from '../constants/icons'
+import { AVATAR_ICONS, ICONS } from '../constants/icons.tsx'
 import { useAuthStore } from '../store/authStore'
 import { useTaskStore } from '../store/taskStore'
 import { useSettingsStore } from '../store/settingsStore'

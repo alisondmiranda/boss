@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, Trash2, Tag, Check, Pencil } from 'lucide-react'
 import { Sector } from '../store/settingsStore'
-import { ICONS } from '../constants/icons'
+import { ICONS } from '../constants/icons.tsx'
 import { Task } from '../store/taskStore'
 
 interface TaskItemProps {
