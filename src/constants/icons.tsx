@@ -1,7 +1,7 @@
 import {
     Briefcase, Heart, User, Home, DollarSign, Book, Plane, Star, Zap,
     Coffee, Music, Gamepad, Bookmark, Tag,
-    Crown, Smile, UserCircle, Ghost, Cat, Dog, Bird, Component,
+    Crown, Smile, UserCircle, Ghost, Cat, Dog, Bird,
     ShoppingBag, Dumbbell, Clapperboard, Gift, Globe, Camera, Wrench,
     Rocket, Trophy, Fish, Bug, Rabbit, Turtle, Baby, Skull
 } from 'lucide-react'
@@ -20,13 +20,16 @@ const Lion = ({ className }: { className?: string }) => (
         strokeLinejoin="round"
         className={className}
     >
-        <path d="M12 2a10 10 0 0 1 10 10a10 10 0 0 1-10 10a10 10 0 0 1-10-10a10 10 0 0 1 10-10" strokeDasharray="1 3" />
-        <circle cx="12" cy="12" r="6" />
-        <path d="M9 11h.01" />
-        <path d="M15 11h.01" />
-        <path d="M12 14a2 2 0 0 0 0 3" />
-        <path d="M7 7l-1-1" />
-        <path d="M17 7l1-1" />
+        {/* Mane (stylized points) */}
+        <path d="M12 3 L14 2 L16 4 L19 3 L19 6 L22 7 L20 10 L22 13 L19 14 L19 17 L16 16 L14 18 L12 17 L10 18 L8 16 L5 17 L5 14 L2 13 L4 10 L2 7 L5 6 L5 3 L8 4 L10 2 Z" />
+        {/* Face */}
+        <circle cx="12" cy="10.5" r="4" />
+        {/* Ears */}
+        <path d="M9 7.5c-.5-.8-1.2-.8-1.5 0M15 7.5c.5-.8 1.2-.8 1.5 0" />
+        {/* Features */}
+        <circle cx="10.5" cy="10.5" r="0.5" fill="currentColor" />
+        <circle cx="13.5" cy="10.5" r="0.5" fill="currentColor" />
+        <path d="M11 12.5h2l-1 1.5z" />
     </svg>
 )
 
