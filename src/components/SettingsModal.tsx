@@ -287,14 +287,14 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                             </button>
 
                                             {/* Other Icons */}
-                                            {AVATAR_ICONS.filter(i => i.value !== 'crown').slice(0, showAllAvatars ? undefined : 13).map(avatar => (
+                                            {AVATAR_ICONS.filter(i => i.value !== 'crown').slice(0, showAllAvatars ? undefined : 6).map(avatar => (
                                                 <button
                                                     key={avatar.value}
                                                     onClick={() => { setAvatarType('icon'); setSelectedIcon(avatar.value) }}
                                                     className={`aspect-square rounded-xl flex items-center justify-center border-2 transition-all ${avatarType === 'icon' && selectedIcon === avatar.value ? 'border-primary bg-primary-container/30 text-primary' : 'border-outline-variant hover:border-primary/50 bg-surface text-on-surface-variant'}`}
                                                     title={avatar.label}
                                                 >
-                                                    <avatar.icon className="w-5 h-5" />
+                                                    <avatar.icon className="w-6 h-6" />
                                                 </button>
                                             ))}
                                         </div>
