@@ -252,8 +252,8 @@ export function Dashboard() {
                         className="w-[72px] h-20 shrink-0 flex items-center justify-center cursor-pointer"
                         onClick={() => !isSidebarExpanded && setIsSidebarExpanded(true)}
                     >
-                        <div className="w-10 h-10 rounded-[12px] bg-primary-container flex items-center justify-center shrink-0">
-                            <img src={crownLogo} className="w-6 h-6 text-on-primary-container" alt="Boss" />
+                        <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                            <img src={crownLogo} className="w-8 h-8 text-on-primary-container" alt="Boss" />
                         </div>
                     </div>
 

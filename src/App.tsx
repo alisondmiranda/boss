@@ -78,9 +78,9 @@ function App() {
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ delay: 0.2, type: "spring" }}
-                            className="w-20 h-20 bg-gradient-to-tr from-primary to-purple-600 rounded-[24px] flex items-center justify-center shadow-lg shadow-primary/20 mb-6"
+                            className="bg-transparent mb-4"
                         >
-                            <img src={crownLogo} className="w-10 h-10 text-white drop-shadow-md" alt="Boss Logo" />
+                            <img src={crownLogo} className="w-16 h-16 drop-shadow-xl filter brightness-125" alt="Boss Logo" />
                         </motion.div>
 
                         <h1 className="text-3xl font-bold tracking-tight text-white text-center">
