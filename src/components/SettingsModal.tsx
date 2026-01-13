@@ -277,24 +277,24 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                             </button>
                                         </div>
 
-                                        <div className="grid grid-cols-7 gap-2">
+                                        <div className="grid grid-cols-8 gap-2">
                                             {/* Default Crown */}
                                             <button
                                                 onClick={() => { setAvatarType('icon'); setSelectedIcon('crown') }}
                                                 className={`w-full aspect-square rounded-xl flex items-center justify-center border-2 transition-all ${avatarType === 'icon' && selectedIcon === 'crown' ? 'border-primary bg-primary-container/30' : 'border-outline-variant hover:border-primary/50 bg-surface'}`}
                                             >
-                                                <img src={crownLogo} className="w-6 h-6 opacity-80" alt="Crown" />
+                                                <img src={crownLogo} className="w-5 h-5 opacity-80" alt="Crown" />
                                             </button>
 
                                             {/* Other Icons */}
-                                            {AVATAR_ICONS.filter(i => i.value !== 'crown').slice(0, showAllAvatars ? undefined : 6).map(avatar => (
+                                            {AVATAR_ICONS.filter(i => i.value !== 'crown').slice(0, showAllAvatars ? undefined : 7).map(avatar => (
                                                 <button
                                                     key={avatar.value}
                                                     onClick={() => { setAvatarType('icon'); setSelectedIcon(avatar.value) }}
                                                     className={`w-full aspect-square rounded-xl flex items-center justify-center border-2 transition-all ${avatarType === 'icon' && selectedIcon === avatar.value ? 'border-primary bg-primary-container/30 text-primary' : 'border-outline-variant hover:border-primary/50 bg-surface text-on-surface-variant'}`}
                                                     title={avatar.label}
                                                 >
-                                                    <avatar.icon className="w-6 h-6" />
+                                                    <avatar.icon className="w-5 h-5" />
                                                 </button>
                                             ))}
                                         </div>
@@ -383,8 +383,8 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                                     {showAllColors ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                                                 </button>
                                             </div>
-                                            <div className="grid grid-cols-7 gap-2">
-                                                {COLORS.slice(0, showAllColors ? undefined : 7).map(c => (
+                                            <div className="grid grid-cols-11 gap-2">
+                                                {COLORS.slice(0, showAllColors ? undefined : 11).map(c => (
                                                     <button
                                                         key={c.value}
                                                         type="button"
@@ -393,7 +393,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                                         style={{ backgroundColor: c.hex }}
                                                         title={c.label}
                                                     >
-                                                        {sectorColor === c.value && <Check className={`w-5 h-5 drop-shadow-md ${c.value === 'white' ? 'text-black' : 'text-white'}`} />}
+                                                        {sectorColor === c.value && <Check className={`w-4 h-4 drop-shadow-md ${c.value === 'white' ? 'text-black' : 'text-white'}`} />}
                                                     </button>
                                                 ))}
                                             </div>
@@ -412,8 +412,8 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                                     {showAllIcons ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                                                 </button>
                                             </div>
-                                            <div className="grid grid-cols-7 gap-2">
-                                                {ICONS.slice(0, showAllIcons ? undefined : 7).map(i => (
+                                            <div className="grid grid-cols-8 gap-2">
+                                                {ICONS.slice(0, showAllIcons ? undefined : 8).map(i => (
                                                     <button
                                                         key={i.value}
                                                         type="button"
