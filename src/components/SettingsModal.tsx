@@ -384,16 +384,16 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                                 </button>
                                             </div>
                                             <div className="flex flex-wrap gap-2">
-                                                {COLORS.slice(0, showAllColors ? undefined : 14).map(c => (
+                                                {COLORS.slice(0, showAllColors ? undefined : 7).map(c => (
                                                     <button
                                                         key={c.value}
                                                         type="button"
                                                         onClick={() => setSectorColor(c.value)}
-                                                        className={`w-8 h-8 rounded-full transition-all flex items-center justify-center ${sectorColor === c.value ? 'scale-110 ring-2 ring-offset-2 ring-primary shadow-sm' : 'hover:scale-110 opacity-70 hover:opacity-100'}`}
+                                                        className={`w-8 h-8 rounded-full transition-all flex items-center justify-center border-2 border-transparent hover:border-outline-variant/50 ${sectorColor === c.value ? 'scale-110 ring-2 ring-offset-2 ring-primary shadow-sm' : 'hover:scale-110 opacity-70 hover:opacity-100'} ${c.value === 'white' ? '!border-outline-variant' : ''}`}
                                                         style={{ backgroundColor: c.hex }}
                                                         title={c.label}
                                                     >
-                                                        {sectorColor === c.value && <Check className="w-4 h-4 text-white drop-shadow-md" />}
+                                                        {sectorColor === c.value && <Check className={`w-4 h-4 drop-shadow-md ${c.value === 'white' ? 'text-black' : 'text-white'}`} />}
                                                     </button>
                                                 ))}
                                             </div>
@@ -413,7 +413,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                                 </button>
                                             </div>
                                             <div className="grid grid-cols-7 gap-2">
-                                                {ICONS.slice(0, showAllIcons ? undefined : 14).map(i => (
+                                                {ICONS.slice(0, showAllIcons ? undefined : 7).map(i => (
                                                     <button
                                                         key={i.value}
                                                         type="button"
@@ -437,12 +437,12 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                             {sectors.map(sector => {
                                                 const Icon = ICONS.find(i => i.value === sector.icon)?.icon || Tag
                                                 return (
-                                                    <div key={sector.id} className={`flex items-center justify-between p-4 bg-surface border rounded-[16px] group transition-all shadow-sm ${editingId === sector.id ? 'border-primary bg-primary-container/10' : 'border-outline-variant hover:border-primary/50'}`}>
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="w-10 h-10 rounded-[12px] flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: COLORS.find(c => c.value === sector.color)?.hex || '#ccc' }}>
-                                                                <Icon className="w-5 h-5" />
+                                                    <div key={sector.id} className={`flex items-center justify-between p-3 bg-surface border rounded-[14px] group transition-all shadow-sm ${editingId === sector.id ? 'border-primary bg-primary-container/10' : 'border-outline-variant hover:border-primary/50'}`}>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-8 h-8 rounded-[10px] flex items-center justify-center shadow-sm ${COLORS.find(c => c.value === sector.color)?.value === 'white' ? 'border border-outline-variant text-black' : 'text-white'}`} style={{ backgroundColor: COLORS.find(c => c.value === sector.color)?.hex || '#ccc' }}>
+                                                                <Icon className="w-4 h-4" />
                                                             </div>
-                                                            <span className="font-medium text-base text-on-surface">{sector.label}</span>
+                                                            <span className="font-medium text-sm text-on-surface">{sector.label}</span>
                                                         </div>
 
                                                         <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">

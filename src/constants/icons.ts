@@ -50,20 +50,11 @@ export const AVATAR_ICONS = [
 ]
 
 export const COLORS: { value: Sector['color'], hex: string, label: string }[] = [
-    // Neutros
-    { value: 'slate', hex: '#64748b', label: 'Slate' },
-    { value: 'gray', hex: '#6b7280', label: 'Cinza' },
-    { value: 'zinc', hex: '#71717a', label: 'Zinco' },
-    { value: 'stone', hex: '#78716c', label: 'Pedra' },
-    { value: 'black', hex: '#1c1917', label: 'Preto' },
-    { value: 'white', hex: '#ffffff', label: 'Branco' },
-
     // Quentes
     { value: 'red', hex: '#ef4444', label: 'Vermelho' },
     { value: 'orange', hex: '#f97316', label: 'Laranja' },
     { value: 'amber', hex: '#f59e0b', label: 'Âmbar' },
     { value: 'yellow', hex: '#eab308', label: 'Amarelo' },
-    { value: 'brown', hex: '#78350f', label: 'Marrom' },
 
     // Frios & Frescos
     { value: 'lime', hex: '#84cc16', label: 'Lima' },
@@ -80,4 +71,13 @@ export const COLORS: { value: Sector['color'], hex: string, label: string }[] = 
     { value: 'fuchsia', hex: '#d946ef', label: 'Fúcsia' },
     { value: 'pink', hex: '#ec4899', label: 'Rosa' },
     { value: 'rose', hex: '#f43f5e', label: 'Rose' },
+
+    // Neutros & Terrsos
+    { value: 'brown', hex: '#78350f', label: 'Marrom' },
+    { value: 'slate', hex: '#64748b', label: 'Slate' },
+    { value: 'gray', hex: '#6b7280', label: 'Cinza' },
+    { value: 'zinc', hex: '#71717a', label: 'Zinco' },
+    { value: 'stone', hex: '#78716c', label: 'Pedra' },
+    { value: 'black', hex: '#1c1917', label: 'Preto' },
+    { value: 'white', hex: '#ffffff', label: 'Branco' },
 ]
