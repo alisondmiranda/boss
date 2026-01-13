@@ -55,12 +55,12 @@ function App() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0f1115] text-white flex items-center justify-center p-4 relative overflow-hidden font-sans">
+        <div className="min-h-screen bg-background text-on-surface flex items-center justify-center p-4 relative overflow-hidden font-sans">
             {/* Animated Background */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] mix-blend-screen animate-pulse-slow" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[120px] mix-blend-screen animate-pulse-slow delay-1000" />
-                <div className="absolute top-[40%] left-[50%] -translate-x-1/2 w-[800px] h-[800px] bg-blue-500/10 rounded-full blur-[150px] mix-blend-screen" />
+                <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] mix-blend-multiply animate-pulse-slow" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-secondary/5 rounded-full blur-[120px] mix-blend-multiply animate-pulse-slow delay-1000" />
+                <div className="absolute top-[40%] left-[50%] -translate-x-1/2 w-[800px] h-[800px] bg-primary-container/10 rounded-full blur-[150px] mix-blend-multiply" />
             </div>
 
             <motion.div
@@ -70,7 +70,7 @@ function App() {
                 className="w-full max-w-[420px] z-10 relative"
             >
                 {/* Glass Card */}
-                <div className="bg-[#1a1c23]/80 backdrop-blur-xl border border-white/10 p-8 rounded-[32px] shadow-2xl relative overflow-hidden">
+                <div className="bg-surface border border-outline-variant/30 p-8 rounded-[32px] shadow-2xl relative overflow-hidden">
 
                     {/* Header */}
                     <div className="flex flex-col items-center mb-10">
@@ -83,10 +83,10 @@ function App() {
                             <img src={crownLogo} className="w-16 h-16 drop-shadow-xl filter brightness-125" alt="Boss Logo" />
                         </motion.div>
 
-                        <h1 className="text-3xl font-bold tracking-tight text-white text-center">
+                        <h1 className="text-3xl font-bold tracking-tight text-on-surface text-center">
                             Bem-vindo ao Boss
                         </h1>
-                        <p className="text-white/40 text-sm mt-2 font-medium text-center">
+                        <p className="text-on-surface-variant text-sm mt-2 font-medium text-center">
                             Organize sua vida. Domine sua rotina.
                         </p>
                     </div>
@@ -125,16 +125,16 @@ function App() {
 
                                     <div className="relative py-2">
                                         <div className="absolute inset-0 flex items-center">
-                                            <div className="w-full border-t border-white/10"></div>
+                                            <div className="w-full border-t border-outline-variant/30"></div>
                                         </div>
                                         <div className="relative flex justify-center">
-                                            <span className="px-4 text-xs text-white/30 font-medium bg-[#1a1c23]/80 uppercase tracking-widest">OU</span>
+                                            <span className="px-4 text-xs text-on-surface-variant font-medium bg-surface uppercase tracking-widest">OU</span>
                                         </div>
                                     </div>
 
                                     <button
                                         onClick={() => setAuthMode('login')}
-                                        className="w-full py-4 text-sm font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-2xl transition-all border border-transparent hover:border-white/10"
+                                        className="w-full py-4 text-sm font-bold text-on-surface-variant hover:text-primary hover:bg-surface-variant rounded-2xl transition-all border border-transparent"
                                     >
                                         Usar E-mail e Senha
                                     </button>
@@ -218,7 +218,7 @@ function App() {
                                         <button
                                             type="button"
                                             onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
-                                            className="text-xs font-bold text-white/50 hover:text-white transition-colors uppercase tracking-widest text-center"
+                                            className="text-xs font-bold text-on-surface-variant/70 hover:text-primary transition-colors uppercase tracking-widest text-center"
                                         >
                                             {authMode === 'login' ? 'Criar uma conta' : 'Já possuo conta'}
                                         </button>
@@ -237,10 +237,10 @@ function App() {
                 </div>
 
                 {/* Footer Links */}
-                <div className="mt-8 flex justify-center gap-6 text-[10px] font-bold tracking-widest uppercase text-white/20">
-                    <button onClick={() => setLegalType('terms')} className="hover:text-white/40 transition-colors">Termos</button>
+                <div className="mt-8 flex justify-center gap-6 text-[10px] font-bold tracking-widest uppercase text-on-surface-variant/40">
+                    <button onClick={() => setLegalType('terms')} className="hover:text-primary transition-colors">Termos</button>
                     <span>•</span>
-                    <button onClick={() => setLegalType('privacy')} className="hover:text-white/40 transition-colors">Privacidade</button>
+                    <button onClick={() => setLegalType('privacy')} className="hover:text-primary transition-colors">Privacidade</button>
                 </div>
             </motion.div>
 
@@ -258,12 +258,12 @@ function SocialLoginButton({ icon: Icon, label, onClick, delay }: { icon: any, l
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay }}
             onClick={onClick}
-            className="w-full h-14 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-2xl flex items-center px-4 transition-all group"
+            className="w-full h-14 bg-surface-variant/50 hover:bg-surface-variant border border-transparent hover:border-outline-variant/30 rounded-2xl flex items-center px-4 transition-all group"
         >
-            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors" >
-                <Icon className="w-5 h-5 text-white/80 group-hover:text-white" />
+            <div className="w-10 h-10 rounded-xl bg-surface flex items-center justify-center group-hover:scale-105 transition-all text-on-surface-variant group-hover:text-primary shadow-sm" >
+                <Icon className="w-5 h-5" />
             </div>
-            <span className="flex-1 text-sm font-bold text-white/70 group-hover:text-white text-center transition-colors">
+            <span className="flex-1 text-sm font-bold text-on-surface-variant group-hover:text-on-surface text-center transition-colors">
                 {label}
             </span>
         </motion.button>
@@ -273,7 +273,7 @@ function SocialLoginButton({ icon: Icon, label, onClick, delay }: { icon: any, l
 function InputGroup({ icon: Icon, type, placeholder, value, onChange }: { icon: any, type: string, placeholder: string, value: string, onChange: (val: string) => void }) {
     return (
         <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-primary transition-colors">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50 group-focus-within:text-primary transition-colors">
                 <Icon className="w-5 h-5" />
             </div>
             <input
@@ -281,7 +281,7 @@ function InputGroup({ icon: Icon, type, placeholder, value, onChange }: { icon: 
                 placeholder={placeholder}
                 value={value}
                 onChange={e => onChange(e.target.value)}
-                className="w-full bg-black/20 border border-white/10 focus:border-primary/50 rounded-2xl pl-12 pr-4 py-4 text-white placeholder:text-white/20 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                className="w-full bg-surface-variant text-on-surface border border-transparent focus:border-primary/50 rounded-2xl pl-12 pr-4 py-4 placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary/20 outline-none transition-all font-medium"
                 required
             />
         </div>
