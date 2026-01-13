@@ -281,7 +281,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                             {/* Default Crown */}
                                             <button
                                                 onClick={() => { setAvatarType('icon'); setSelectedIcon('crown') }}
-                                                className={`aspect-square rounded-xl flex items-center justify-center border-2 transition-all ${avatarType === 'icon' && selectedIcon === 'crown' ? 'border-primary bg-primary-container/30' : 'border-outline-variant hover:border-primary/50 bg-surface'}`}
+                                                className={`w-full aspect-square rounded-xl flex items-center justify-center border-2 transition-all ${avatarType === 'icon' && selectedIcon === 'crown' ? 'border-primary bg-primary-container/30' : 'border-outline-variant hover:border-primary/50 bg-surface'}`}
                                             >
                                                 <img src={crownLogo} className="w-6 h-6 opacity-80" alt="Crown" />
                                             </button>
@@ -291,7 +291,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                                 <button
                                                     key={avatar.value}
                                                     onClick={() => { setAvatarType('icon'); setSelectedIcon(avatar.value) }}
-                                                    className={`aspect-square rounded-xl flex items-center justify-center border-2 transition-all ${avatarType === 'icon' && selectedIcon === avatar.value ? 'border-primary bg-primary-container/30 text-primary' : 'border-outline-variant hover:border-primary/50 bg-surface text-on-surface-variant'}`}
+                                                    className={`w-full aspect-square rounded-xl flex items-center justify-center border-2 transition-all ${avatarType === 'icon' && selectedIcon === avatar.value ? 'border-primary bg-primary-container/30 text-primary' : 'border-outline-variant hover:border-primary/50 bg-surface text-on-surface-variant'}`}
                                                     title={avatar.label}
                                                 >
                                                     <avatar.icon className="w-6 h-6" />
@@ -383,17 +383,17 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                                     {showAllColors ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                                                 </button>
                                             </div>
-                                            <div className="flex flex-wrap gap-2">
+                                            <div className="grid grid-cols-7 gap-2">
                                                 {COLORS.slice(0, showAllColors ? undefined : 7).map(c => (
                                                     <button
                                                         key={c.value}
                                                         type="button"
                                                         onClick={() => setSectorColor(c.value)}
-                                                        className={`w-8 h-8 rounded-full transition-all flex items-center justify-center border-2 border-transparent hover:border-outline-variant/50 ${sectorColor === c.value ? 'scale-110 ring-2 ring-offset-2 ring-primary shadow-sm' : 'hover:scale-110 opacity-70 hover:opacity-100'} ${c.value === 'white' ? '!border-outline-variant' : ''}`}
+                                                        className={`w-full aspect-square rounded-full transition-all flex items-center justify-center border-2 border-transparent hover:border-outline-variant/50 ${sectorColor === c.value ? 'scale-105 ring-2 ring-offset-2 ring-primary shadow-sm' : 'hover:scale-105 opacity-80 hover:opacity-100'} ${c.value === 'white' ? '!border-outline-variant' : ''}`}
                                                         style={{ backgroundColor: c.hex }}
                                                         title={c.label}
                                                     >
-                                                        {sectorColor === c.value && <Check className={`w-4 h-4 drop-shadow-md ${c.value === 'white' ? 'text-black' : 'text-white'}`} />}
+                                                        {sectorColor === c.value && <Check className={`w-5 h-5 drop-shadow-md ${c.value === 'white' ? 'text-black' : 'text-white'}`} />}
                                                     </button>
                                                 ))}
                                             </div>
@@ -418,7 +418,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                                         key={i.value}
                                                         type="button"
                                                         onClick={() => setSectorIcon(i.value)}
-                                                        className={`p-2 rounded-xl flex items-center justify-center transition-all ${sectorIcon === i.value
+                                                        className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all ${sectorIcon === i.value
                                                             ? 'bg-secondary-container text-on-secondary-container shadow-sm ring-1 ring-secondary'
                                                             : 'bg-surface-variant/50 text-on-surface-variant hover:bg-surface-variant hover:text-on-surface'
                                                             }`}
