@@ -4,15 +4,21 @@ import {
     Plus, Trash2, LogOut,
     Settings, Send, Loader2,
     Calendar, Tag, ListTodo, Ghost,
-    MessageCircle, CheckCircle2, PanelLeftClose, Check
+    MessageCircle, CheckCircle2, PanelLeftClose, Check, Calendar as CalendarIcon, Repeat,
+    Search, X
 } from 'lucide-react'
 import crownLogo from '../assets/crown.svg'
 import { AVATAR_ICONS, ICONS } from '../constants/icons.tsx'
 import { useAuthStore } from '../store/authStore'
-import { useTaskStore } from '../store/taskStore'
+import { useTaskStore, RecurrenceInput } from '../store/taskStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { SettingsModal } from './SettingsModal'
 import { sendMessageToGemini, GeminiResponse } from '../lib/gemini'
+import { DatePicker } from './DatePicker'
+import { RecurrencePicker, RecurrenceRule } from './RecurrencePicker'
+import { TaskFormModal } from './TaskFormModal'
+import { TaskItem } from './TaskItem'
+
 
 interface ChatMessage {
     role: 'user' | 'assistant'
@@ -21,26 +27,24 @@ interface ChatMessage {
 
 import { useToast } from '../store/toastStore'
 import { ToastContainer } from './ToastContainer'
-import { TaskItem } from './TaskItem'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { getSectorColorClass } from '../lib/utils'
 
 export function Dashboard() {
     const { signOut, user } = useAuthStore()
-    const today = new Date()
     const {
         tasks, trashTasks, fetchTasks, addTask, toggleTask,
-        moveToTrash, restoreTask, permanentlyDeleteTask, updateTaskSector, updateTask,
-        clearDoneTasks, emptyTrash
+        moveToTrash, restoreTask, permanentlyDeleteTask, updateTaskSector, updateTask, updateTaskWithSubtasks,
+        clearDoneTasks, emptyTrash, updateSubtask
     } = useTaskStore()
     const { sectors, userProfile } = useSettingsStore()
     const { addToast } = useToast()
 
-    const [newTaskInput, setNewTaskInput] = useState('')
-    const [filter, setFilter] = useState<string[]>([])
     const [showSettings, setShowSettings] = useState(false)
     const [settingsTab, setSettingsTab] = useState<'api' | 'sectors' | 'profile'>('api')
+    const [filter, setFilter] = useState<string[]>([])
+    const [searchQuery, setSearchQuery] = useState('')
 
     // Sidebar State
     const [sidebarOpen] = useState(true) // For Mobile Drawer
@@ -81,9 +85,10 @@ export function Dashboard() {
         return `${greeting}, `
     }
 
-    const [selectedInputSectors, setSelectedInputSectors] = useState<string[]>([])
-    const [isSectorDropdownOpen, setIsSectorDropdownOpen] = useState(false)
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+    const [isTaskFormOpen, setIsTaskFormOpen] = useState(false)
+    const [editingTask, setEditingTask] = useState<Task | null>(null)
+    const [initialOpenPicker, setInitialOpenPicker] = useState<'date' | 'recurrence' | null>(null)
 
     // Updated Filtering Logic
     const toggleFilter = (sectorId: string) => {
@@ -101,32 +106,54 @@ export function Dashboard() {
     const trashTasksCount = trashTasks.length
 
     const filteredTasks = tasks.filter(t => {
-        if (filter.length === 0) return true
-        const taskSectors = Array.isArray(t.sector) ? t.sector : [t.sector]
-        return taskSectors.some(s => filter.includes(s))
+        // Filter by sector
+        if (filter.length > 0) {
+            const taskSectors = Array.isArray(t.sector) ? t.sector : [t.sector]
+            if (!taskSectors.some(s => filter.includes(s))) return false
+        }
+        // Filter by search query
+        if (searchQuery.trim()) {
+            return t.title.toLowerCase().includes(searchQuery.toLowerCase())
+        }
+        return true
     })
 
-    const handleAddTask = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!newTaskInput.trim()) return
 
-        // If no sector selected, pass empty array.
-        // The backend/DB must handle this (e.g. nullable column or support for empty array).
-        const sectorsToUse = selectedInputSectors
 
+    const handleAddTask = async (title: string, inputSectors: string[], dueAt: Date | null, recurrence: RecurrenceRule | null, details: string | null, subtasks: any[]) => {
         try {
-            await addTask(newTaskInput, sectorsToUse)
-            setNewTaskInput('')
-            // Keep selection or clear? Usually helpful to keep context for rapid entry, but let's keep it.
+            // Apply default sector (Geral) if none selected
+            let finalSectors = inputSectors
+            if (!finalSectors || finalSectors.length === 0) {
+                const geral = sectors.find(s => s.label.toLowerCase() === 'geral' || s.label.toLowerCase() === 'general')
+                if (geral) {
+                    finalSectors = [geral.id]
+                } else {
+                    finalSectors = ['geral'] // Virtual default sector
+                }
+            }
+
+            if (editingTask) {
+                // Update Logic
+                await updateTaskWithSubtasks(editingTask.id, {
+                    title,
+                    sector: finalSectors,
+                    due_at: dueAt ? dueAt.toISOString() : null,
+                    details,
+                    recurrence_id: recurrence ? (recurrence as any).id || editingTask.recurrence_id : null
+                }, subtasks)
+                addToast('Tarefa atualizada!', 'success')
+            } else {
+                await addTask(title, finalSectors, dueAt, recurrence, details, subtasks)
+                addToast('Tarefa criada com sucesso!', 'success')
+            }
         } catch (error) {
             console.error(error)
-            addToast(`Erro ao criar tarefa: ${(error as any).message || 'Tente novamente'}`, 'error')
+            addToast(`Erro ao ${(editingTask ? 'atualizar' : 'criar')} tarefa: ${(error as any).message || 'Tente novamente'}`, 'error')
         }
     }
 
-    const InputSectorIcon = selectedInputSectors.length === 1
-        ? (ICONS.find(i => i.value === sectors.find(s => s.id === selectedInputSectors[0])?.icon)?.icon || Tag)
-        : (selectedInputSectors.length > 1 ? ListTodo : Plus)
+    const InputSectorIcon = Plus
 
 
     const handleMoveToTrash = async (id: string) => {
@@ -435,7 +462,7 @@ export function Dashboard() {
                             <span className="text-primary">{userProfile.displayName || 'Boss'}.</span>
                         </motion.h1>
                         <p className="text-sm text-on-surface-variant mt-1 capitalize opacity-80 pl-1 font-medium">
-                            {format(today, "EEEE, d 'de' MMMM", { locale: ptBR })}
+                            {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
                         </p>
                     </div>
 
@@ -598,140 +625,114 @@ export function Dashboard() {
                             <div className="max-w-4xl mx-auto space-y-6 pt-4">
 
                                 {/* Quick Filters / Navigation Buttons */}
+                                {/* Unified Toolbar (Only in Nav) */}
                                 {sidebarMode === 'nav' && (
-                                    <div className="flex gap-2 justify-end mb-4 px-2">
-                                        <button
-                                            onClick={() => setSidebarMode('done')}
-                                            className="px-4 py-2 rounded-full bg-surface border border-outline-variant/50 text-on-surface-variant hover:bg-surface-variant/30 hover:text-primary transition-colors flex items-center gap-2 text-sm font-medium shadow-sm hover:shadow-md"
-                                        >
-                                            <CheckCircle2 className="w-4 h-4" />
-                                            Concluídas
-                                        </button>
-                                        <button
-                                            onClick={() => setSidebarMode('trash')}
-                                            className="px-4 py-2 rounded-full bg-surface border border-outline-variant/50 text-on-surface-variant hover:bg-error/5 hover:text-error hover:border-error/20 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm hover:shadow-md"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                            Lixeira
-                                        </button>
+                                    <div className="flex flex-col md:flex-row gap-4 mb-6 sticky top-0 bg-background z-30 pt-2 pb-2">
+                                        {/* Search Bar */}
+                                        <div className="flex-1 relative group">
+                                            <div className="relative z-10 bg-surface rounded-[20px] shadow-sm border border-outline-variant/30 flex items-center px-4 py-3">
+                                                <Search className="w-5 h-5 text-on-surface-variant/50 mr-3" />
+                                                <input
+                                                    type="text"
+                                                    value={searchQuery}
+                                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                                    placeholder="Buscar tarefas..."
+                                                    className="flex-1 bg-transparent border-none text-base text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none"
+                                                />
+                                                {searchQuery && (
+                                                    <button
+                                                        onClick={() => setSearchQuery('')}
+                                                        className="p-1 hover:bg-surface-variant rounded-full transition-colors"
+                                                    >
+                                                        <X className="w-4 h-4 text-on-surface-variant" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Actions Group */}
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <button
+                                                onClick={() => setIsTaskFormOpen(true)}
+                                                className="h-[46px] px-4 rounded-full bg-primary text-on-primary font-bold shadow-2 hover:shadow-4 hover:scale-105 transition-all flex items-center gap-2"
+                                            >
+                                                <Plus className="w-5 h-5" />
+                                                <span className="hidden md:inline">Nova Tarefa</span>
+                                            </button>
+
+                                            <div className="w-px h-8 bg-outline-variant/50 mx-1" />
+
+                                            <button
+                                                onClick={() => setSidebarMode('done')}
+                                                className="h-[46px] px-4 rounded-full bg-surface border border-outline-variant/50 text-on-surface-variant hover:bg-surface-variant/30 hover:text-primary transition-colors flex items-center gap-2 text-sm font-medium shadow-sm hover:shadow-md"
+                                                title="Concluídas"
+                                            >
+                                                <CheckCircle2 className="w-5 h-5" />
+                                                <span className="hidden lg:inline">Concluídas</span>
+                                            </button>
+
+                                            <button
+                                                onClick={() => setSidebarMode('trash')}
+                                                className="h-[46px] px-4 rounded-full bg-surface border border-outline-variant/50 text-on-surface-variant hover:bg-error/5 hover:text-error hover:border-error/20 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm hover:shadow-md"
+                                                title="Lixeira"
+                                            >
+                                                <Trash2 className="w-5 h-5" />
+                                                <span className="hidden lg:inline">Lixeira</span>
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
 
-                                {/* Input Area (Only in Nav) */}
-                                {sidebarMode === 'nav' && (
-                                    <form onSubmit={handleAddTask} className="relative group mb-8">
-                                        <div className="relative z-10 bg-surface rounded-[28px] shadow-2 group-focus-within:shadow-3 transition-shadow duration-200 flex items-center pl-6 pr-2 py-2">
-                                            <input
-                                                type="text"
-                                                value={newTaskInput}
-                                                onChange={(e) => setNewTaskInput(e.target.value)}
-                                                placeholder="Adicionar nova tarefa..."
-                                                className="flex-1 bg-transparent border-none py-2 text-lg text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none"
-                                            />
+                                <TaskFormModal
+                                    isOpen={isTaskFormOpen}
+                                    onClose={() => {
+                                        setIsTaskFormOpen(false)
+                                        setEditingTask(null)
+                                        setInitialOpenPicker(null)
+                                    }}
+                                    onSave={handleAddTask}
+                                    sectors={sectors}
+                                    mode={editingTask ? 'edit' : 'create'}
+                                    initialTitle={editingTask?.title}
+                                    initialSectors={editingTask ? (Array.isArray(editingTask.sector) ? editingTask.sector : [editingTask.sector]) : []}
+                                    initialDueAt={editingTask?.due_at ? new Date(editingTask.due_at) : null}
+                                    initialDetails={editingTask?.details}
+                                    initialSubtasks={editingTask?.subtasks || []}
+                                    initialOpenPicker={initialOpenPicker}
+                                />
 
-                                            <div className="flex items-center gap-2">
-                                                {/* Sector Select Dropdown (Mini) */}
-                                                <div className="relative">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setIsSectorDropdownOpen(!isSectorDropdownOpen)}
-                                                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${selectedInputSectors.length > 0
-                                                            ? 'bg-primary-container text-on-primary-container'
-                                                            : 'bg-surface-variant/30 text-on-surface-variant hover:bg-surface-variant'}`}
-                                                        title="Escolher Listas"
-                                                    >
-                                                        <InputSectorIcon className="w-4 h-4" />
-                                                    </button>
-
-                                                    <AnimatePresence>
-                                                        {isSectorDropdownOpen && (
-                                                            <>
-                                                                <div className="fixed inset-0 z-40" onClick={() => setIsSectorDropdownOpen(false)} />
-                                                                <motion.div
-                                                                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                                                                    className="absolute top-full right-0 mt-2 w-56 bg-surface rounded-xl shadow-4 border border-outline-variant flex flex-col py-1 overflow-hidden z-50 max-h-64 overflow-y-auto custom-scrollbar"
-                                                                >
-                                                                    <span className="px-3 py-2 text-[10px] uppercase font-bold text-on-surface-variant/50 tracking-wider flex justify-between items-center bg-surface sticky top-0 z-10">
-                                                                        Salvar em...
-                                                                        {selectedInputSectors.length > 0 && (
-                                                                            <span onClick={(e) => { e.stopPropagation(); setSelectedInputSectors([]) }} className="cursor-pointer text-primary hover:underline lowercase font-medium">limpar</span>
-                                                                        )}
-                                                                    </span>
-
-                                                                    {sectors.map(s => {
-                                                                        const isSelected = selectedInputSectors.includes(s.id)
-                                                                        return (
-                                                                            <button
-                                                                                key={s.id}
-                                                                                type="button"
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation()
-                                                                                    setSelectedInputSectors(prev =>
-                                                                                        prev.includes(s.id)
-                                                                                            ? prev.filter(id => id !== s.id)
-                                                                                            : [...prev, s.id]
-                                                                                    )
-                                                                                }}
-                                                                                className={`px-3 py-2.5 text-sm text-left flex items-center justify-between hover:bg-surface-variant/50 transition-colors ${isSelected ? 'text-on-surface font-medium bg-surface-variant/30' : 'text-on-surface/80'}`}
-                                                                            >
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <div className={`w-2 h-2 rounded-full ${getSectorColorClass(s.color).split(' ')[0].replace('bg-', 'bg-').replace('-100', '-500')}`} />
-                                                                                    {s.label}
-                                                                                </div>
-                                                                                {isSelected && <Check className="w-4 h-4 text-primary" />}
-                                                                            </button>
-                                                                        )
-                                                                    })}
-                                                                </motion.div>
-                                                            </>
-                                                        )}
-                                                    </AnimatePresence>
-                                                </div>
-
-                                                {/* Add Button */}
-                                                <button
-                                                    type="submit"
-                                                    disabled={!newTaskInput}
-                                                    className="w-10 h-10 bg-primary text-on-primary rounded-full flex items-center justify-center hover:shadow-1 disabled:opacity-0 disabled:scale-95 transition-all"
-                                                >
-                                                    <Plus className="w-6 h-6" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </form>
-                                )}
 
                                 {/* Header for Done/Filtered Views */}
-                                {sidebarMode === 'done' && (
-                                    <div className="flex items-center justify-between pb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-primary/10 rounded-full text-primary">
-                                                <CheckCircle2 className="w-6 h-6" />
+                                {
+                                    sidebarMode === 'done' && (
+                                        <div className="flex items-center justify-between pb-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-primary/10 rounded-full text-primary">
+                                                    <CheckCircle2 className="w-6 h-6" />
+                                                </div>
+                                                <h2 className="text-xl font-bold text-on-surface">Tarefas Concluídas</h2>
+                                                <span className="text-sm font-medium text-on-surface-variant bg-surface-variant/50 px-2 py-0.5 rounded-full">{doneTasksCount}</span>
                                             </div>
-                                            <h2 className="text-xl font-bold text-on-surface">Tarefas Concluídas</h2>
-                                            <span className="text-sm font-medium text-on-surface-variant bg-surface-variant/50 px-2 py-0.5 rounded-full">{doneTasksCount}</span>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => setSidebarMode('nav')}
-                                                className="text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-surface-variant/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
-                                            >
-                                                <ListTodo className="w-4 h-4" />
-                                                Tarefas
-                                            </button>
-                                            {doneTasksCount > 0 && (
+                                            <div className="flex gap-2">
                                                 <button
-                                                    onClick={handleClearDone}
-                                                    className="text-sm font-medium text-error hover:bg-error/10 px-3 py-1.5 rounded-lg transition-colors"
+                                                    onClick={() => setSidebarMode('nav')}
+                                                    className="text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-surface-variant/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
                                                 >
-                                                    Limpar Concluídas
+                                                    <ListTodo className="w-4 h-4" />
+                                                    Tarefas
                                                 </button>
-                                            )}
+                                                {doneTasksCount > 0 && (
+                                                    <button
+                                                        onClick={handleClearDone}
+                                                        className="text-sm font-medium text-error hover:bg-error/10 px-3 py-1.5 rounded-lg transition-colors"
+                                                    >
+                                                        Limpar Concluídas
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )
+                                }
 
 
                                 {/* Tasks List */}
@@ -756,10 +757,26 @@ export function Dashboard() {
                                                         sectors={sectors}
                                                         toggleTask={toggleTask}
                                                         updateTaskSector={handleUpdateTaskSector}
+                                                        updateSubtask={updateSubtask}
                                                         setTaskMenuOpen={setTaskMenuOpen}
                                                         taskMenuOpen={taskMenuOpen}
                                                         handleMoveToTrash={handleMoveToTrash}
                                                         updateTask={updateTask}
+                                                        onEditClick={(task) => {
+                                                            setEditingTask(task)
+                                                            setInitialOpenPicker(null)
+                                                            setIsTaskFormOpen(true)
+                                                        }}
+                                                        onDateClick={(task) => {
+                                                            setEditingTask(task)
+                                                            setInitialOpenPicker('date')
+                                                            setIsTaskFormOpen(true)
+                                                        }}
+                                                        onRecurrenceClick={(task) => {
+                                                            setEditingTask(task)
+                                                            setInitialOpenPicker('recurrence')
+                                                            setIsTaskFormOpen(true)
+                                                        }}
                                                     />
                                                 )
                                             })}
@@ -776,7 +793,7 @@ export function Dashboard() {
                                     )}
                                 </div>
 
-                            </div>
+                            </div >
                         )
                     }
 
@@ -847,6 +864,8 @@ export function Dashboard() {
                             </div>
                         )
                     }
+
+
                 </div >
             </main >
         </div >

@@ -1,5 +1,32 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
+import { addDays, addWeeks, addMonths, addYears } from 'date-fns'
+
+export interface RecurrenceInput {
+    frequency: 'daily' | 'weekly' | 'monthly' | 'yearly'
+    interval: number
+    week_days?: number[]
+    ends_on?: Date | null
+}
+
+export interface Recurrence {
+    id: string
+    user_id: string
+    frequency: 'daily' | 'weekly' | 'monthly' | 'yearly'
+    interval: number
+    week_days?: number[]
+    ends_on?: string
+    created_at: string
+}
+
+export interface Subtask {
+    id: string
+    task_id: string
+    title: string
+    completed: boolean
+    order: number
+    created_at: string
+}
 
 export interface Task {
     id: string
@@ -9,6 +36,10 @@ export interface Task {
     user_id: string
     created_at: string
     trash_date?: string
+    due_at?: string | null
+    recurrence_id?: string | null
+    details?: string | null
+    subtasks?: Subtask[]
 }
 
 interface TaskState {
@@ -18,9 +49,10 @@ interface TaskState {
     filter: string[]
     setFilter: (sectors: string[]) => void
     fetchTasks: () => Promise<void>
-    addTask: (title: string, sector: string | string[]) => Promise<void>
+    addTask: (title: string, sector: string | string[], dueAt?: Date | null, recurrence?: RecurrenceInput | null, details?: string | null, subtasks?: Omit<Subtask, 'id' | 'task_id' | 'created_at'>[]) => Promise<void>
     updateTaskSector: (id: string, newSector: string | string[]) => Promise<void>
     updateTask: (id: string, updates: Partial<Task>) => Promise<void>
+    updateTaskWithSubtasks: (id: string, updates: Partial<Task>, newSubtasks: Omit<Subtask, 'id' | 'task_id' | 'created_at'>[]) => Promise<void>
     toggleTask: (id: string, currentStatus: Task['status']) => Promise<void>
     moveToTrash: (id: string) => Promise<void>
     restoreTask: (id: string) => Promise<void>
@@ -28,6 +60,12 @@ interface TaskState {
     clearDoneTasks: () => Promise<void>
     emptyTrash: () => Promise<void>
     subscribeToTasks: () => () => void
+    // Subtask methods
+    addSubtask: (taskId: string, title: string) => Promise<void>
+    toggleSubtask: (subtaskId: string) => Promise<void>
+    deleteSubtask: (subtaskId: string) => Promise<void>
+    updateSubtask: (subtaskId: string, title: string) => Promise<void>
+    updateSubtaskOrder: (taskId: string, subtaskIds: string[]) => Promise<void>
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -41,17 +79,23 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     fetchTasks: async () => {
         set({ loading: true })
 
-        // Fetch active tasks
+        // Fetch active tasks with subtasks
         const { data: activeData, error: activeError } = await supabase
             .from('tasks')
-            .select('*')
+            .select(`
+                *,
+                subtasks (*)
+            `)
             .neq('status', 'trash')
             .order('created_at', { ascending: false })
 
-        // Fetch trash tasks
+        // Fetch trash tasks with subtasks
         const { data: trashData, error: trashError } = await supabase
             .from('tasks')
-            .select('*')
+            .select(`
+                *,
+                subtasks (*)
+            `)
             .eq('status', 'trash')
             .order('trash_date', { ascending: false })
 
@@ -97,11 +141,33 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         })
     },
 
-    addTask: async (title, sector) => {
+    addTask: async (title, sector, dueAt, recurrence, details, subtasks) => {
         const tempId = Math.random().toString()
-        const currentUser = (await supabase.auth.getUser()).data.user?.id
+        const user = (await supabase.auth.getUser()).data.user
+        if (!user) throw new Error('User not authenticated')
+        const currentUser = user.id
 
-        if (!currentUser) throw new Error('User not authenticated')
+        // 1. Handle Recurrence Creation
+        let recurrenceId: string | null = null
+        if (recurrence) {
+            const { data: recData, error: recError } = await supabase
+                .from('recurrences')
+                .insert([{
+                    user_id: currentUser,
+                    frequency: recurrence.frequency,
+                    interval: recurrence.interval,
+                    week_days: recurrence.week_days,
+                    ends_on: recurrence.ends_on ? recurrence.ends_on.toISOString() : null
+                }])
+                .select()
+                .single()
+
+            if (recError) {
+                console.error('Error creating recurrence:', recError)
+            } else {
+                recurrenceId = recData.id
+            }
+        }
 
         const newTask: Task = {
             id: tempId,
@@ -109,7 +175,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             sector,
             status: 'todo',
             user_id: currentUser,
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            due_at: dueAt ? dueAt.toISOString() : null,
+            recurrence_id: recurrenceId,
+            details: details || null,
+            subtasks: []
         }
 
         set(state => ({ tasks: [newTask, ...state.tasks] }))
@@ -120,7 +190,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
                 title,
                 sector,
                 user_id: currentUser,
-                status: 'todo'
+                status: 'todo',
+                due_at: dueAt ? dueAt.toISOString() : null,
+                recurrence_id: recurrenceId,
+                details: details || null
             }])
             .select()
             .single()
@@ -128,8 +201,29 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         if (error) {
             console.error('Error adding task:', error)
             set(state => ({ tasks: state.tasks.filter(t => t.id !== tempId) }))
-            throw error // Propagate error to UI
+            throw error
         } else {
+            // 2. Create subtasks if provided
+            if (subtasks && subtasks.length > 0 && data) {
+                const subtasksToInsert = subtasks.map((st, index) => ({
+                    task_id: data.id,
+                    title: st.title,
+                    completed: st.completed,
+                    order: index
+                }))
+
+                const { data: subtasksData, error: subtasksError } = await supabase
+                    .from('subtasks')
+                    .insert(subtasksToInsert)
+                    .select()
+
+                if (subtasksError) {
+                    console.error('Error creating subtasks:', subtasksError)
+                } else {
+                    data.subtasks = subtasksData
+                }
+            }
+
             set(state => ({
                 tasks: state.tasks.map(t => t.id === tempId ? data : t)
             }))
@@ -166,12 +260,109 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         }
     },
 
-    toggleTask: async (id, currentStatus) => {
-        const newStatus = currentStatus === 'todo' ? 'done' : 'todo'
+    updateTaskWithSubtasks: async (id, updates, newSubtasks) => {
+        // 1. Update Task Details
+        await get().updateTask(id, updates)
 
+        // 2. Replace Subtasks
+        const { error: delError } = await supabase
+            .from('subtasks')
+            .delete()
+            .eq('task_id', id)
+
+        if (delError) {
+            console.error('Error deleting old subtasks:', delError)
+            return
+        }
+
+        if (newSubtasks.length > 0) {
+            const toInsert = newSubtasks.map((st, index) => ({
+                task_id: id,
+                title: st.title,
+                completed: st.completed || false,
+                order: index
+            }))
+
+            const { error: insError } = await supabase
+                .from('subtasks')
+                .insert(toInsert)
+
+            if (insError) console.error('Error inserting new subtasks:', insError)
+        }
+
+        // 3. Refresh to get fresh state (IDs etc)
+        await get().fetchTasks()
+    },
+
+    toggleTask: async (id, currentStatus) => {
+        const tasks = get().tasks
+        const task = tasks.find(t => t.id === id)
+        if (!task) return
+
+        const newStatus = currentStatus === 'todo' ? 'done' : 'todo'
+        const previousStatus = task.status
+
+        // Optimistic Update for current task
         set(state => ({
             tasks: state.tasks.map(t => t.id === id ? { ...t, status: newStatus } : t)
         }))
+
+        // Handle Recurrence if marking as DONE
+        if (newStatus === 'done' && task.recurrence_id && task.status !== 'done') {
+            try {
+                // Fetch recurrence rule
+                const { data: rule, error: ruleError } = await supabase
+                    .from('recurrences')
+                    .select('*')
+                    .eq('id', task.recurrence_id)
+                    .single()
+
+                if (rule && !ruleError) {
+                    // Calculate next date
+                    const currentDue = task.due_at ? new Date(task.due_at) : new Date()
+                    // If no due date, base it on completion (now)
+
+                    let nextDate: Date = new Date(currentDue)
+                    const interval = rule.interval || 1
+
+                    switch (rule.frequency) {
+                        case 'daily': nextDate = addDays(currentDue, interval); break;
+                        case 'weekly': nextDate = addWeeks(currentDue, interval); break;
+                        case 'monthly': nextDate = addMonths(currentDue, interval); break;
+                        case 'yearly': nextDate = addYears(currentDue, interval); break;
+                    }
+
+                    // Check ends_on
+                    const endsOn = rule.ends_on ? new Date(rule.ends_on) : null
+                    if (!endsOn || nextDate <= endsOn) {
+                        // Create Next Task
+                        const tempId = Math.random().toString()
+                        const nextTask: Task = {
+                            ...task,
+                            id: tempId,
+                            status: 'todo',
+                            due_at: nextDate.toISOString(),
+                            created_at: new Date().toISOString()
+                        }
+
+                        // Optimistic Add
+                        set(state => ({ tasks: [nextTask, ...state.tasks] }))
+
+                        // DB Insert
+                        await supabase.from('tasks').insert([{
+                            title: task.title,
+                            sector: task.sector,
+                            user_id: task.user_id,
+                            status: 'todo',
+                            due_at: nextDate.toISOString(),
+                            recurrence_id: task.recurrence_id
+                        }])
+                    }
+                }
+            } catch (err) {
+                console.error('Error processing recurrence:', err)
+            }
+        }
 
         const { error } = await supabase
             .from('tasks')
@@ -181,7 +372,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         if (error) {
             console.error('Error toggling task:', error)
             set(state => ({
-                tasks: state.tasks.map(t => t.id === id ? { ...t, status: currentStatus } : t)
+                tasks: state.tasks.map(t => t.id === id ? { ...t, status: previousStatus } : t)
             }))
         }
     },
@@ -319,5 +510,134 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         return () => {
             supabase.removeChannel(channel)
         }
+    },
+
+    // Subtask methods
+    addSubtask: async (taskId, title) => {
+        const task = get().tasks.find(t => t.id === taskId)
+        if (!task) return
+
+        const nextOrder = (task.subtasks?.length || 0)
+
+        const { data, error } = await supabase
+            .from('subtasks')
+            .insert([{
+                task_id: taskId,
+                title,
+                completed: false,
+                order: nextOrder
+            }])
+            .select()
+            .single()
+
+        if (error) {
+            console.error('Error adding subtask:', error)
+        } else {
+            set(state => ({
+                tasks: state.tasks.map(t =>
+                    t.id === taskId
+                        ? { ...t, subtasks: [...(t.subtasks || []), data] }
+                        : t
+                )
+            }))
+        }
+    },
+
+    toggleSubtask: async (subtaskId) => {
+        const task = get().tasks.find(t => t.subtasks?.some(st => st.id === subtaskId))
+        if (!task) return
+
+        const subtask = task.subtasks?.find(st => st.id === subtaskId)
+        if (!subtask) return
+
+        const newCompleted = !subtask.completed
+
+        const { error } = await supabase
+            .from('subtasks')
+            .update({ completed: newCompleted })
+            .eq('id', subtaskId)
+
+        if (error) {
+            console.error('Error toggling subtask:', error)
+        } else {
+            set(state => ({
+                tasks: state.tasks.map(t =>
+                    t.id === task.id
+                        ? {
+                            ...t,
+                            subtasks: t.subtasks?.map(st =>
+                                st.id === subtaskId ? { ...st, completed: newCompleted } : st
+                            )
+                        }
+                        : t
+                )
+            }))
+        }
+    },
+
+    deleteSubtask: async (subtaskId) => {
+        const task = get().tasks.find(t => t.subtasks?.some(st => st.id === subtaskId))
+        if (!task) return
+
+        const { error } = await supabase
+            .from('subtasks')
+            .delete()
+            .eq('id', subtaskId)
+
+        if (error) {
+            console.error('Error deleting subtask:', error)
+        } else {
+            set(state => ({
+                tasks: state.tasks.map(t =>
+                    t.id === task.id
+                        ? { ...t, subtasks: t.subtasks?.filter(st => st.id !== subtaskId) }
+                        : t
+                )
+            }))
+        }
+    },
+
+    updateSubtask: async (subtaskId, title) => {
+        const task = get().tasks.find(t => t.subtasks?.some(st => st.id === subtaskId))
+        if (!task) return
+
+        const { error } = await supabase
+            .from('subtasks')
+            .update({ title })
+            .eq('id', subtaskId)
+
+        if (error) {
+            console.error('Error updating subtask:', error)
+        } else {
+            set(state => ({
+                tasks: state.tasks.map(t =>
+                    t.id === task.id
+                        ? {
+                            ...t,
+                            subtasks: t.subtasks?.map(st =>
+                                st.id === subtaskId ? { ...st, title } : st
+                            )
+                        }
+                        : t
+                )
+            }))
+        }
+    },
+
+    updateSubtaskOrder: async (taskId, subtaskIds) => {
+        const updates = subtaskIds.map((id, index) => ({
+            id,
+            order: index
+        }))
+
+        for (const update of updates) {
+            await supabase
+                .from('subtasks')
+                .update({ order: update.order })
+                .eq('id', update.id)
+        }
+
+        // Refetch to get updated order
+        get().fetchTasks()
     }
 }))
