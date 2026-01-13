@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 export interface Sector {
     id: string
     label: string
-    color: 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'pink' | 'slate' | 'indigo' | 'teal' | 'cyan' | 'amber' | 'yellow' | 'lime' | 'sky' | 'violet' | 'fuchsia'
+    color: 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'pink' | 'slate' | 'indigo' | 'teal' | 'cyan' | 'amber' | 'yellow' | 'lime' | 'sky' | 'violet' | 'fuchsia' | 'rose' | 'stone' | 'zinc' | 'gray'
     icon: string
 }
 
@@ -118,13 +118,17 @@ export const useSettingsStore = create<SettingsState>()(
                     if (data.selected_icon) profileUpdates.selectedIcon = data.selected_icon
                     if (data.custom_avatar_url !== undefined) profileUpdates.customAvatarUrl = data.custom_avatar_url
 
+                    // Ensure we merge with existing or default
+                    const currentProfile = get().userProfile || DEFAULT_PROFILE
                     if (Object.keys(profileUpdates).length > 0) {
-                        updates.userProfile = { ...get().userProfile, ...profileUpdates }
+                        updates.userProfile = { ...currentProfile, ...profileUpdates }
                     }
 
                     if (Object.keys(updates).length > 0) {
                         set(updates)
                     }
+                } else if (error && error.code !== 'PGRST116') { // Ignore "Row not found" error
+                    console.error("Error fetching settings:", error)
                 }
             },
 

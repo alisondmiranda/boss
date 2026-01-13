@@ -1,9 +1,8 @@
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-    Settings, X, Key, ExternalLink, Check, AlertCircle, Plus, Trash2, Tag,
-    Pencil, Link as LinkIcon
+    Pencil, Link as LinkIcon, Github, Linkedin, X, Settings, AlertCircle, ExternalLink, Check, Trash2, Plus, Tag, Key
 } from 'lucide-react'
 import { useSettingsStore, Sector } from '../store/settingsStore'
 import { useToast } from '../store/toastStore'
@@ -23,9 +22,16 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
         sectors, addSector, updateSector, removeSector,
         userProfile, updateUserProfile
     } = useSettingsStore()
-    const { user, signInWithGoogle, signInWithApple, linkWithApple } = useAuthStore()
+
+    const { user, signInWithGoogle, linkIdentity, unlinkIdentity } = useAuthStore()
     const { addToast } = useToast()
     const [inputKey, setInputKey] = useState(geminiApiKey || '')
+
+    const scrollRef = useRef<HTMLDivElement>(null)
+
+    // Safe Profile Access
+    const defaultProfile = { displayName: '', avatarType: 'icon' as const, selectedIcon: 'crown', customAvatarUrl: '' }
+    const safeProfile = userProfile || defaultProfile
 
     // Tabs
     const [activeTab, setActiveTab] = useState<'api' | 'sectors' | 'profile'>(initialTab)
@@ -37,20 +43,20 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
     const [sectorIcon, setSectorIcon] = useState('tag')
 
     // Profile Form State
-    const [displayName, setDisplayName] = useState(userProfile.displayName || '')
-    const [avatarType, setAvatarType] = useState(userProfile.avatarType || 'icon')
-    const [selectedIcon, setSelectedIcon] = useState(userProfile.selectedIcon || 'crown')
-    const [customAvatarUrl, setCustomAvatarUrl] = useState(userProfile.customAvatarUrl || '')
+    const [displayName, setDisplayName] = useState(safeProfile.displayName || '')
+    const [avatarType, setAvatarType] = useState(safeProfile.avatarType || 'icon')
+    const [selectedIcon, setSelectedIcon] = useState(safeProfile.selectedIcon || 'crown')
+    const [customAvatarUrl, setCustomAvatarUrl] = useState(safeProfile.customAvatarUrl || '')
 
     useEffect(() => {
         if (isOpen) {
             setActiveTab(initialTab)
-            setDisplayName(userProfile.displayName || '')
-            setAvatarType(userProfile.avatarType)
-            setSelectedIcon(userProfile.selectedIcon || 'crown')
-            setCustomAvatarUrl(userProfile.customAvatarUrl || '')
+            setDisplayName(safeProfile.displayName || '')
+            setAvatarType(safeProfile.avatarType)
+            setSelectedIcon(safeProfile.selectedIcon || 'crown')
+            setCustomAvatarUrl(safeProfile.customAvatarUrl || '')
         }
-    }, [isOpen, initialTab, userProfile])
+    }, [isOpen, initialTab, safeProfile])
 
     // Reset form when tab changes
     useEffect(() => {
@@ -93,14 +99,15 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                 label: sectorName,
                 color: sectorColor,
                 icon: sectorIcon
+
             })
-            addToast(`Setor "${sectorName}" atualizado!`, 'success')
+            addToast(`Lista "${sectorName}" atualizada!`, 'success')
         } else {
             // Create New
             const newId = sectorName.toLowerCase().replace(/\s+/g, '-')
             // Simple check for duplicates
             if (sectors.some(s => s.id === newId)) {
-                addToast('Já existe um setor com este ID (nome).', 'error')
+                addToast('Já existe uma lista com este ID (nome).', 'error')
                 return
             }
 
@@ -110,7 +117,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                 color: sectorColor,
                 icon: sectorIcon
             })
-            addToast(`Setor "${sectorName}" criado!`, 'success')
+            addToast(`Lista "${sectorName}" criada!`, 'success')
         }
         resetForm()
     }
@@ -120,6 +127,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
         setSectorName(sector.label)
         setSectorColor(sector.color)
         setSectorIcon(sector.icon)
+        scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
     return (
@@ -162,7 +170,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                 onClick={() => setActiveTab('sectors')}
                                 className={`flex-1 py-4 text-sm font-medium transition-all border-b-2 ${activeTab === 'sectors' ? 'text-primary border-primary' : 'text-on-surface-variant border-transparent hover:text-on-surface hover:bg-surface-variant/30'}`}
                             >
-                                Setores
+                                Listas
                             </button>
                             <button
                                 onClick={() => setActiveTab('api')}
@@ -172,17 +180,16 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                             </button>
                         </div>
 
-                        {/* Content */}
-                        <div className="p-6 overflow-y-auto custom-scrollbar bg-surface-variant/30 flex-1">
+                        <div ref={scrollRef} className="p-6 overflow-y-auto custom-scrollbar bg-surface-variant/30 flex-1">
                             {activeTab === 'api' && (
                                 <div className="space-y-6 relative">
                                     {/* WIP Overlay */}
-                                    <div className="absolute inset-0 bg-surface/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center text-center p-6">
-                                        <div className="bg-surface p-6 rounded-2xl shadow-4 border border-outline-variant max-w-sm">
-                                            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
-                                                <AlertCircle className="w-6 h-6" />
+                                    <div className="absolute inset-0 bg-surface/90 backdrop-blur-[4px] z-10 flex flex-col items-center justify-center text-center p-6 rounded-xl">
+                                        <div className="bg-surface p-6 rounded-2xl shadow-6 border border-primary/20 max-w-sm">
+                                            <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
+                                                <AlertCircle className="w-8 h-8" />
                                             </div>
-                                            <h3 className="text-lg font-bold text-on-surface mb-2">Em desenvolvimento</h3>
+                                            <h3 className="text-xl font-bold text-on-surface mb-2">Em desenvolvimento</h3>
                                             <p className="text-sm text-on-surface-variant">
                                                 A integração com a IA está sendo aprimorada para oferecer uma experiência ainda melhor. Volte em breve!
                                             </p>
@@ -257,7 +264,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                     <div className="space-y-4">
                                         <label className="text-sm font-bold text-on-surface-variant uppercase tracking-wider block">Avatar</label>
 
-                                        <div className="grid grid-cols-4 gap-3">
+                                        <div className="grid grid-cols-6 gap-3">
                                             {/* Default Crown */}
                                             <button
                                                 onClick={() => { setAvatarType('icon'); setSelectedIcon('crown') }}
@@ -285,42 +292,31 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                         <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Contas Vinculadas</label>
 
                                         <div className="flex flex-col gap-2">
-                                            <button
-                                                onClick={() => !user ? signInWithGoogle() : null}
-                                                className={`w-full p-3 rounded-xl border flex items-center justify-between transition-all ${user
-                                                    ? 'bg-surface border-green-200 text-green-700'
-                                                    : 'bg-surface border-outline-variant text-on-surface hover:bg-surface-variant'}`}
-                                            >
-                                                <span className="flex items-center gap-2 font-medium text-sm">
-                                                    <div className="w-2 h-2 rounded-full bg-current" />
-                                                    Google
-                                                </span>
-                                                {user ? <Check className="w-4 h-4" /> : <LinkIcon className="w-4 h-4 opacity-50" />}
-                                            </button>
+                                            <ProviderLinkButton
+                                                provider="google"
+                                                label="Google"
+                                                icon={GoogleIcon}
+                                                user={user}
+                                                onLink={() => linkIdentity('google')}
+                                                onUnlink={(id) => unlinkIdentity(id)}
+                                            />
+                                            <ProviderLinkButton
+                                                provider="github"
+                                                label="GitHub"
+                                                icon={Github}
+                                                user={user}
+                                                onLink={() => linkIdentity('github')}
+                                                onUnlink={(id) => unlinkIdentity(id)}
+                                            />
+                                            <ProviderLinkButton
+                                                provider="linkedin_oidc"
+                                                label="LinkedIn"
+                                                icon={LinkedInIcon}
+                                                user={user}
+                                                onLink={() => linkIdentity('linkedin_oidc')}
+                                                onUnlink={(id) => unlinkIdentity(id)}
+                                            />
 
-                                            <button
-                                                onClick={async () => {
-                                                    if (!user) {
-                                                        await signInWithApple()
-                                                    } else if (!user.identities?.some(id => id.provider === 'apple')) {
-                                                        try {
-                                                            await linkWithApple()
-                                                            addToast('Apple vinculada com sucesso!', 'success')
-                                                        } catch (e) {
-                                                            addToast('Erro ao vincular conta Apple.', 'error')
-                                                        }
-                                                    }
-                                                }}
-                                                className={`w-full p-3 rounded-xl border flex items-center justify-between transition-all ${user?.identities?.some(id => id.provider === 'apple')
-                                                    ? 'bg-surface border-green-200 text-green-700'
-                                                    : 'bg-surface border-outline-variant text-on-surface hover:bg-surface-variant'}`}
-                                            >
-                                                <span className="flex items-center gap-2 font-medium text-sm">
-                                                    <div className={`w-2 h-2 rounded-full ${user?.identities?.some(id => id.provider === 'apple') ? 'bg-green-500' : 'bg-on-surface/20'}`} />
-                                                    Apple
-                                                </span>
-                                                {user?.identities?.some(id => id.provider === 'apple') ? <Check className="w-4 h-4" /> : <LinkIcon className="w-4 h-4 opacity-50" />}
-                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -331,7 +327,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                     <form onSubmit={handleSaveSector} className={`space-y-4 bg-surface p-5 rounded-[20px] shadow-1 border transition-colors ${editingId ? 'border-primary ring-1 ring-primary/20' : 'border-outline-variant/50'}`}>
                                         <div className="flex justify-between items-center mb-2">
                                             <h3 className="text-sm font-bold text-on-surface">
-                                                {editingId ? 'Editar Setor' : 'Novo Setor'}
+                                                {editingId ? 'Editar Lista' : 'Nova Lista'}
                                             </h3>
                                             {editingId && (
                                                 <button
@@ -403,7 +399,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                     </form>
 
                                     <div className="space-y-3">
-                                        <h3 className="text-sm font-bold text-on-surface px-1">Seus Setores</h3>
+                                        <h3 className="text-sm font-bold text-on-surface px-1">Suas Listas</h3>
                                         <div className="grid gap-2">
                                             {sectors.map(sector => {
                                                 const Icon = ICONS.find(i => i.value === sector.icon)?.icon || Tag
@@ -459,3 +455,70 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
     )
 }
 
+
+function GoogleIcon({ className }: { className?: string }) {
+    return (
+        <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+            <path d="M21.35 11.1H12v3.8h5.36c-.23 1.25-2.23 3.66-5.36 3.66-3.23 0-5.86-2.61-5.86-6.17s2.63-6.17 5.86-6.17c1.83 0 3.04.78 3.74 1.45l2.67-2.9C16.89 3.07 14.65 2 12 2 6.48 2 2 6.48 2 12s4.48 10 10 10c5.77 0 9.6-4.06 9.6-9.77 0-.67-.06-1.31-.19-1.92z" />
+        </svg>
+    )
+}
+
+function LinkedInIcon({ className }: { className?: string }) {
+    return (
+        <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.216zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452z" />
+        </svg>
+    )
+}
+
+
+
+interface ProviderLinkButtonProps {
+    provider: string
+    label: string
+    icon?: any
+    user: any
+    onLink: () => Promise<void>
+    onUnlink: (identityId: string) => Promise<void>
+}
+
+function ProviderLinkButton({ provider, label, icon: Icon, user, onLink, onUnlink }: ProviderLinkButtonProps) {
+    const { addToast } = useToast()
+
+
+    const identity = user?.identities?.find((id: any) => id.provider === provider)
+    const isLinked = !!identity
+
+    const handleLink = async () => {
+        try {
+            if (isLinked) {
+                if (confirm(`Desvincular conta do ${label}?`)) {
+                    await onUnlink(identity.identity_id)
+                    addToast(`${label} desvinculado.`, 'success')
+                }
+            } else {
+                await onLink()
+                addToast(`${label} vinculado com sucesso!`, 'success')
+            }
+        } catch (e) {
+            addToast(`Erro ao atualizar ${label}.`, 'error')
+        }
+    }
+
+    return (
+        <button
+            onClick={handleLink}
+            className={`w-full p-3 rounded-xl border flex items-center justify-between transition-all ${isLinked
+                ? 'bg-surface border-green-200 text-green-700'
+                : 'bg-surface border-outline-variant text-on-surface hover:bg-surface-variant'}`}
+        >
+            <span className="flex items-center gap-2 font-medium text-sm">
+                <div className={`w-2 h-2 rounded-full ${isLinked ? 'bg-green-500' : 'bg-on-surface/20'}`} />
+                {Icon && <Icon className="w-4 h-4" />}
+                {label}
+            </span>
+            {isLinked ? <X className="w-4 h-4 text-on-surface-variant hover:text-error" /> : <LinkIcon className="w-4 h-4 opacity-50" />}
+        </button>
+    )
+}

@@ -129,11 +129,13 @@ export function Dashboard() {
 
 
     const handleMoveToTrash = async (id: string) => {
-        try {
-            await moveToTrash(id)
-            addToast('Tarefa movida para a lixeira. (Pode ser restaurada na aba Lixeira)', 'info')
-        } catch (error) {
-            addToast('Erro ao excluir tarefa.', 'error')
+        if (confirm('Deseja mover esta tarefa para a lixeira?')) {
+            try {
+                await moveToTrash(id)
+                addToast('Tarefa movida para a lixeira.', 'info')
+            } catch (error) {
+                addToast('Erro ao excluir tarefa.', 'error')
+            }
         }
     }
 
@@ -221,6 +223,10 @@ export function Dashboard() {
             case 'purple': return 'bg-purple-100 text-purple-700 border-purple-200'
             case 'fuchsia': return 'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200'
             case 'pink': return 'bg-pink-100 text-pink-700 border-pink-200'
+            case 'rose': return 'bg-rose-100 text-rose-700 border-rose-200'
+            case 'stone': return 'bg-stone-100 text-stone-700 border-stone-200'
+            case 'zinc': return 'bg-zinc-100 text-zinc-700 border-zinc-200'
+            case 'gray': return 'bg-gray-100 text-gray-700 border-gray-200'
             default: return 'bg-slate-100 text-slate-700 border-slate-200'
         }
     }
@@ -354,7 +360,7 @@ export function Dashboard() {
                                 animate={{ opacity: isSidebarExpanded ? 1 : 0, x: isSidebarExpanded ? 0 : -10 }}
                                 className="truncate overflow-hidden whitespace-nowrap"
                             >
-                                Assistant
+                                Assistente
                             </motion.span>
                         </button>
                     </div>
@@ -403,6 +409,16 @@ export function Dashboard() {
                                     >
                                         {s.label}
                                     </motion.span>
+
+                                    {isSelected && isSidebarExpanded && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.5 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className="mr-5"
+                                        >
+                                            <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary-rgb),0.6)]" />
+                                        </motion.div>
+                                    )}
                                 </button>
                             )
                         })}
@@ -410,10 +426,10 @@ export function Dashboard() {
                 </div>
 
                 {/* Trash at Bottom */}
-                <div className="mt-auto pb-4">
+                <div className="mt-auto pb-4 pt-3 mx-4 border-t border-outline-variant/50">
                     <button
                         onClick={() => setSidebarMode('trash')}
-                        className={`w-full flex items-center rounded-r-[16px] text-sm font-medium transition-colors relative ${sidebarMode === 'trash' ? 'bg-error/10 text-error' : 'text-on-surface-variant hover:text-error hover:bg-error/5'}`}
+                        className={`w-full flex items-center rounded-[16px] text-sm font-medium transition-colors relative ${sidebarMode === 'trash' ? 'bg-error/10 text-error' : 'text-on-surface-variant hover:text-error hover:bg-error/5'}`}
                     >
                         {sidebarMode === 'trash' && (
                             <div className="absolute left-0 top-2 bottom-2 w-1 bg-error rounded-r-full" />

@@ -68,6 +68,10 @@ export function TaskItem({
             case 'purple': return 'bg-purple-100 text-purple-700 border-purple-200'
             case 'fuchsia': return 'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200'
             case 'pink': return 'bg-pink-100 text-pink-700 border-pink-200'
+            case 'rose': return 'bg-rose-100 text-rose-700 border-rose-200'
+            case 'stone': return 'bg-stone-100 text-stone-700 border-stone-200'
+            case 'zinc': return 'bg-zinc-100 text-zinc-700 border-zinc-200'
+            case 'gray': return 'bg-gray-100 text-gray-700 border-gray-200'
             default: return 'bg-slate-100 text-slate-700 border-slate-200'
         }
     }
@@ -109,13 +113,6 @@ export function TaskItem({
                     >
                         {task.title}
                     </span>
-                    <button
-                        onClick={() => setIsEditing(true)}
-                        className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity p-1"
-                        title="Editar"
-                    >
-                        <Pencil className="w-3 h-3" />
-                    </button>
                 </div>
             )}
 
@@ -183,13 +180,23 @@ export function TaskItem({
                 </AnimatePresence>
             </div>
 
-            <button
-                onClick={() => handleMoveToTrash(task.id)}
-                className="opacity-0 group-hover:opacity-100 p-2 text-on-surface-variant hover:text-error hover:bg-error-container/20 rounded-full transition-all"
-                title="Excluir"
-            >
-                <Trash2 className="w-4 h-4" />
-            </button>
+            {/* Actions */}
+            <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                <button
+                    onClick={() => setIsEditing(true)}
+                    className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-full transition-all"
+                    title="Editar"
+                >
+                    <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                    onClick={() => handleMoveToTrash(task.id)}
+                    className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container/20 rounded-full transition-all"
+                    title="Excluir"
+                >
+                    <Trash2 className="w-4 h-4" />
+                </button>
+            </div>
         </motion.div>
     )
 }

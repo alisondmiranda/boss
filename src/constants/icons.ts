@@ -1,7 +1,8 @@
 import {
     Briefcase, Heart, User, Home, DollarSign, Book, Plane, Star, Zap,
     Coffee, Music, Gamepad, Bookmark, Tag,
-    Crown, Smile, UserCircle, Ghost, Cat, Dog, Bird, Component
+    Crown, Smile, UserCircle, Ghost, Cat, Dog, Bird, Component,
+    ShoppingBag, Dumbbell, Clapperboard, Gift, Globe, Camera, Wrench
 } from 'lucide-react'
 import { Sector } from '../store/settingsStore'
 
@@ -19,7 +20,14 @@ export const ICONS = [
     { value: 'music', icon: Music, label: 'Música' },
     { value: 'gamepad', icon: Gamepad, label: 'Games' },
     { value: 'bookmark', icon: Bookmark, label: 'Outros' },
-    { value: 'tag', icon: Tag, label: 'Tag' }
+    { value: 'tag', icon: Tag, label: 'Tag' },
+    { value: 'shopping-bag', icon: ShoppingBag, label: 'Compras' },
+    { value: 'dumbbell', icon: Dumbbell, label: 'Treino' },
+    { value: 'clapperboard', icon: Clapperboard, label: 'Filmes' },
+    { value: 'gift', icon: Gift, label: 'Presentes' },
+    { value: 'globe', icon: Globe, label: 'Internet' },
+    { value: 'camera', icon: Camera, label: 'Fotos' },
+    { value: 'wrench', icon: Wrench, label: 'Manutenção' }
 ]
 
 export const AVATAR_ICONS = [
@@ -31,6 +39,10 @@ export const AVATAR_ICONS = [
     { value: 'dog', label: 'Cachorro', icon: Dog },
     { value: 'bird', label: 'Pássaro', icon: Bird },
     { value: 'component', label: 'Tech', icon: Component },
+    { value: 'zap', label: 'Energia', icon: Zap },
+    { value: 'star', label: 'Estrela', icon: Star },
+    { value: 'music', label: 'Música', icon: Music },
+    { value: 'gamepad', label: 'Gamer', icon: Gamepad },
 ]
 
 export const COLORS: { value: Sector['color'], hex: string, label: string }[] = [
@@ -50,4 +62,8 @@ export const COLORS: { value: Sector['color'], hex: string, label: string }[] = 
     { value: 'purple', hex: '#a855f7', label: 'Roxo' },
     { value: 'fuchsia', hex: '#d946ef', label: 'Fúcsia' },
     { value: 'pink', hex: '#ec4899', label: 'Rosa' },
+    { value: 'rose', hex: '#f43f5e', label: 'Rose' },
+    { value: 'stone', hex: '#78716c', label: 'Pedra' },
+    { value: 'zinc', hex: '#71717a', label: 'Zinco' },
+    { value: 'gray', hex: '#6b7280', label: 'Cinza Escuro' },
 ]
