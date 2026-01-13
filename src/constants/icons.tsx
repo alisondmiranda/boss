@@ -3,7 +3,7 @@ import {
     Coffee, Music, Gamepad, Bookmark, Tag,
     Crown, Smile, UserCircle, Ghost, Cat, Dog, Bird, Component,
     ShoppingBag, Dumbbell, Clapperboard, Gift, Globe, Camera, Wrench,
-    User, Rocket, Trophy, Fish, Bug, Rabbit, Turtle, Baby, Skull
+    Rocket, Trophy, Fish, Bug, Rabbit, Turtle, Baby, Skull
 } from 'lucide-react'
 import { Sector } from '../store/settingsStore'
 
