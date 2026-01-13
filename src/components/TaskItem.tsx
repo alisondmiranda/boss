@@ -18,10 +18,11 @@ interface TaskItemProps {
     updateTask: (id: string, updates: Partial<Task>) => void
     onEditClick?: (task: Task) => void
     onDateClick?: (task: Task) => void
-    onEditClick?: (task: Task) => void
-    onDateClick?: (task: Task) => void
     onRecurrenceClick?: (task: Task) => void
     updateSubtask: (subtaskId: string, title: string) => Promise<void>
+    addSubtask: (taskId: string, title: string) => Promise<void>
+    toggleSubtask: (subtaskId: string) => Promise<void>
+    deleteSubtask: (subtaskId: string) => Promise<void>
 }
 
 import { format, isPast, isToday, isTomorrow, isThisYear } from 'date-fns'
@@ -29,7 +30,8 @@ import { ptBR } from 'date-fns/locale'
 
 export function TaskItem({
     task, taskSectors, sectors, toggleTask, updateTaskSector,
-    setTaskMenuOpen, taskMenuOpen, handleMoveToTrash, updateTask, onEditClick, onDateClick, onRecurrenceClick, updateSubtask
+    setTaskMenuOpen, taskMenuOpen, handleMoveToTrash, updateTask, onEditClick, onDateClick, onRecurrenceClick,
+    updateSubtask, addSubtask, toggleSubtask, deleteSubtask
 }: TaskItemProps) {
     const [isExpanded, setIsExpanded] = useState(false)
     const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
@@ -115,26 +117,16 @@ export function TaskItem({
 
     const handleAddSubtask = () => {
         if (!newSubtaskTitle.trim()) return
-        const newSubtask = {
-            id: crypto.randomUUID(),
-            title: newSubtaskTitle.trim(),
-            completed: false
-        }
-        const updatedSubtasks = [...(task.subtasks || []), newSubtask]
-        updateTask(task.id, { subtasks: updatedSubtasks })
+        addSubtask(task.id, newSubtaskTitle.trim())
         setNewSubtaskTitle('')
     }
 
     const handleToggleSubtask = (subtaskId: string) => {
-        const updatedSubtasks = task.subtasks?.map(s =>
-            s.id === subtaskId ? { ...s, completed: !s.completed } : s
-        )
-        updateTask(task.id, { subtasks: updatedSubtasks })
+        toggleSubtask(subtaskId)
     }
 
     const handleDeleteSubtask = (subtaskId: string) => {
-        const updatedSubtasks = task.subtasks?.filter(s => s.id !== subtaskId)
-        updateTask(task.id, { subtasks: updatedSubtasks })
+        deleteSubtask(subtaskId)
     }
 
     return (

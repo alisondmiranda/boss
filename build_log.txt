@@ -1,0 +1,9 @@
+
+> boss@0.0.0 build
+> tsc -b && vite build
+
+src/components/Dashboard.tsx(154,11): error TS6133: 'InputSectorIcon' is declared but its value is never read.
+src/components/DatePicker.tsx(64,14): error TS2304: Cannot find name 'showTime'.
+src/components/RecurrencePicker.tsx(3,10): error TS6133: 'Check' is declared but its value is never read.
+src/components/TaskFormModal.tsx(3,35): error TS6133: 'Plus' is declared but its value is never read.
+src/components/TaskFormModal.tsx(272,38): error TS2304: Cannot find name 'Repeat'.

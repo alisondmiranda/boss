@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Calendar as CalendarIcon, Repeat, Tag, Check, ListTodo, Plus, Trash2, CheckCircle2, CornerDownLeft, Clock, AlignLeft, ChevronDown } from 'lucide-react'
+import { X, Tag, Check, ListTodo, Repeat, Clock, AlignLeft, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { DatePicker } from './DatePicker'
@@ -37,7 +37,6 @@ export function TaskFormModal({
     initialDetails = null,
     initialSubtasks = [],
     initialOpenPicker = null,
-    mode
 }: TaskFormModalProps) {
     const [title, setTitle] = useState(initialTitle)
     const [selectedSectors, setSelectedSectors] = useState<string[]>(initialSectors)
@@ -164,9 +163,7 @@ export function TaskFormModal({
         return freq
     }
 
-    const InputSectorIcon = selectedSectors.length === 1
-        ? (ICONS.find(i => i.value === sectors.find(s => s.id === selectedSectors[0])?.icon)?.icon || Tag)
-        : (selectedSectors.length > 1 ? ListTodo : Plus)
+
 
     if (!isOpen) return null
 

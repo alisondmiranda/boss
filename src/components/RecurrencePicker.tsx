@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Repeat, ChevronDown } from 'lucide-react'
+import { Repeat } from 'lucide-react'
 
 export interface RecurrenceRule {
     frequency: 'daily' | 'weekly' | 'monthly' | 'yearly'
@@ -78,32 +78,32 @@ export function RecurrencePicker({ value, onChange, isOpen, onClose }: Recurrenc
                         <>
                             <button
                                 onClick={() => applyPreset('daily')}
-                                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium hover:bg-surface-variant flex items-center justify-between transition-colors ${value?.frequency === 'daily' && value?.interval === 1 ? 'bg-primary/10 text-primary' : 'text-on-surface'}`}
+                                className={`w - full text - left px - 4 py - 3 rounded - xl text - sm font - medium hover: bg - surface - variant flex items - center justify - between transition - colors ${value?.frequency === 'daily' && value?.interval === 1 ? 'bg-primary/10 text-primary' : 'text-on-surface'} `}
                             >
                                 Todos os dias
                             </button>
                             <button
                                 onClick={() => applyPreset('weekly')}
-                                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium hover:bg-surface-variant flex items-center justify-between transition-colors ${value?.frequency === 'weekly' && value?.interval === 1 ? 'bg-primary/10 text-primary' : 'text-on-surface'}`}
+                                className={`w - full text - left px - 4 py - 3 rounded - xl text - sm font - medium hover: bg - surface - variant flex items - center justify - between transition - colors ${value?.frequency === 'weekly' && value?.interval === 1 ? 'bg-primary/10 text-primary' : 'text-on-surface'} `}
                             >
                                 Toda semana
                             </button>
                             <button
                                 onClick={() => applyPreset('monthly')}
-                                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium hover:bg-surface-variant flex items-center justify-between transition-colors ${value?.frequency === 'monthly' && value?.interval === 1 ? 'bg-primary/10 text-primary' : 'text-on-surface'}`}
+                                className={`w - full text - left px - 4 py - 3 rounded - xl text - sm font - medium hover: bg - surface - variant flex items - center justify - between transition - colors ${value?.frequency === 'monthly' && value?.interval === 1 ? 'bg-primary/10 text-primary' : 'text-on-surface'} `}
                             >
                                 Todo mês
                             </button>
                             <button
                                 onClick={() => applyPreset('yearly')}
-                                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium hover:bg-surface-variant flex items-center justify-between transition-colors ${value?.frequency === 'yearly' && value?.interval === 1 ? 'bg-primary/10 text-primary' : 'text-on-surface'}`}
+                                className={`w - full text - left px - 4 py - 3 rounded - xl text - sm font - medium hover: bg - surface - variant flex items - center justify - between transition - colors ${value?.frequency === 'yearly' && value?.interval === 1 ? 'bg-primary/10 text-primary' : 'text-on-surface'} `}
                             >
                                 Todo ano
                             </button>
 
                             <button
                                 onClick={() => applyPreset('weekly', 2)}
-                                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium hover:bg-surface-variant flex items-center justify-between transition-colors ${value?.frequency === 'weekly' && value?.interval === 2 ? 'bg-primary/10 text-primary' : 'text-on-surface'}`}
+                                className={`w - full text - left px - 4 py - 3 rounded - xl text - sm font - medium hover: bg - surface - variant flex items - center justify - between transition - colors ${value?.frequency === 'weekly' && value?.interval === 2 ? 'bg-primary/10 text-primary' : 'text-on-surface'} `}
                             >
                                 A cada 2 semanas
                             </button>
@@ -158,10 +158,10 @@ export function RecurrencePicker({ value, onChange, isOpen, onClose }: Recurrenc
                                             <button
                                                 key={day.value}
                                                 onClick={() => toggleWeekDay(day.value)}
-                                                className={`h-9 rounded-full text-xs font-bold flex items-center justify-center transition-all ${selectedWeekDays.includes(day.value)
+                                                className={`h - 9 rounded - full text - xs font - bold flex items - center justify - center transition - all ${selectedWeekDays.includes(day.value)
                                                     ? 'bg-primary text-on-primary'
                                                     : 'bg-surface-variant text-on-surface-variant hover:bg-surface-variant/70'
-                                                    }`}
+                                                    } `}
                                             >
                                                 {day.label}
                                             </button>

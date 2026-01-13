@@ -4,18 +4,17 @@ import {
     Plus, Trash2, LogOut,
     Settings, Send, Loader2,
     Calendar, Tag, ListTodo, Ghost,
-    MessageCircle, CheckCircle2, PanelLeftClose, Check, Calendar as CalendarIcon, Repeat,
+    MessageCircle, CheckCircle2, PanelLeftClose,
     Search, X
 } from 'lucide-react'
 import crownLogo from '../assets/crown.svg'
 import { AVATAR_ICONS, ICONS } from '../constants/icons.tsx'
 import { useAuthStore } from '../store/authStore'
-import { useTaskStore, RecurrenceInput } from '../store/taskStore'
+import { useTaskStore, Task } from '../store/taskStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { SettingsModal } from './SettingsModal'
 import { sendMessageToGemini, GeminiResponse } from '../lib/gemini'
-import { DatePicker } from './DatePicker'
-import { RecurrencePicker, RecurrenceRule } from './RecurrencePicker'
+import { RecurrenceRule } from './RecurrencePicker'
 import { TaskFormModal } from './TaskFormModal'
 import { TaskItem } from './TaskItem'
 
@@ -29,14 +28,13 @@ import { useToast } from '../store/toastStore'
 import { ToastContainer } from './ToastContainer'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { getSectorColorClass } from '../lib/utils'
 
 export function Dashboard() {
     const { signOut, user } = useAuthStore()
     const {
         tasks, trashTasks, fetchTasks, addTask, toggleTask,
         moveToTrash, restoreTask, permanentlyDeleteTask, updateTaskSector, updateTask, updateTaskWithSubtasks,
-        clearDoneTasks, emptyTrash, updateSubtask
+        clearDoneTasks, emptyTrash, updateSubtask, addSubtask, toggleSubtask, deleteSubtask
     } = useTaskStore()
     const { sectors, userProfile } = useSettingsStore()
     const { addToast } = useToast()
@@ -152,8 +150,6 @@ export function Dashboard() {
             addToast(`Erro ao ${(editingTask ? 'atualizar' : 'criar')} tarefa: ${(error as any).message || 'Tente novamente'}`, 'error')
         }
     }
-
-    const InputSectorIcon = Plus
 
 
     const handleMoveToTrash = async (id: string) => {
@@ -758,6 +754,9 @@ export function Dashboard() {
                                                         toggleTask={toggleTask}
                                                         updateTaskSector={handleUpdateTaskSector}
                                                         updateSubtask={updateSubtask}
+                                                        addSubtask={addSubtask}
+                                                        toggleSubtask={toggleSubtask}
+                                                        deleteSubtask={deleteSubtask}
                                                         setTaskMenuOpen={setTaskMenuOpen}
                                                         taskMenuOpen={taskMenuOpen}
                                                         handleMoveToTrash={handleMoveToTrash}

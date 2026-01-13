@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, isToday, setHours, setMinutes } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Clock, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 
 interface DatePickerProps {
     date: Date | null
@@ -15,7 +15,7 @@ interface DatePickerProps {
 export function DatePicker({ date, onSelect, isOpen, onClose, triggerRef }: DatePickerProps) {
     const [currentMonth, setCurrentMonth] = useState(new Date())
     const [selectedDate, setSelectedDate] = useState<Date | null>(date)
-    const [showTime, setShowTime] = useState(false)
+    // removed unused showTime state
     const [timeValue, setTimeValue] = useState(date ? format(date, 'HH:mm') : '09:00')
 
     const pickerRef = useRef<HTMLDivElement>(null)
@@ -61,10 +61,8 @@ export function DatePicker({ date, onSelect, isOpen, onClose, triggerRef }: Date
         }
         setSelectedDate(newDate)
         // If not showing time, confirm selection immediately (or keep open if you prefer)
-        if (!showTime) {
-            onSelect(newDate)
-            onClose()
-        }
+        onSelect(newDate)
+        onClose()
     }
 
     const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {

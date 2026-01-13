@@ -624,7 +624,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         }
     },
 
-    updateSubtaskOrder: async (taskId, subtaskIds) => {
+    updateSubtaskOrder: async (_taskId, subtaskIds) => {
         const updates = subtaskIds.map((id, index) => ({
             id,
             order: index
