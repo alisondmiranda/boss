@@ -1,8 +1,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-    Pencil, Link as LinkIcon, Github, X, Settings, AlertCircle, ExternalLink, Check, Trash2, Plus, Tag, Key
+Pencil, Link as LinkIcon, Github, X, Settings, AlertCircle, ExternalLink, Check, Trash2, Plus, Tag, Key,
+    ChevronDown, ChevronUp
 } from 'lucide-react'
 import { useSettingsStore, Sector } from '../store/settingsStore'
 import { useToast } from '../store/toastStore'
@@ -47,6 +47,9 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
     const [avatarType, setAvatarType] = useState(safeProfile.avatarType || 'icon')
     const [selectedIcon, setSelectedIcon] = useState(safeProfile.selectedIcon || 'crown')
     const [customAvatarUrl, setCustomAvatarUrl] = useState(safeProfile.customAvatarUrl || '')
+    const [showAllAvatars, setShowAllAvatars] = useState(false)
+    const [showAllColors, setShowAllColors] = useState(false)
+    const [showAllIcons, setShowAllIcons] = useState(false)
 
     useEffect(() => {
         if (isOpen) {
@@ -262,26 +265,35 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
 
                                     {/* Avatar Section */}
                                     <div className="space-y-4">
-                                        <label className="text-sm font-bold text-on-surface-variant uppercase tracking-wider block">Avatar</label>
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-sm font-bold text-on-surface-variant uppercase tracking-wider block">Avatar</label>
+                                            <button
+                                                onClick={() => setShowAllAvatars(!showAllAvatars)}
+                                                className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
+                                            >
+                                                {showAllAvatars ? 'Ver menos' : 'Ver todos'}
+                                                {showAllAvatars ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                            </button>
+                                        </div>
 
-                                        <div className="grid grid-cols-6 gap-3">
+                                        <div className="grid grid-cols-7 gap-2">
                                             {/* Default Crown */}
                                             <button
                                                 onClick={() => { setAvatarType('icon'); setSelectedIcon('crown') }}
-                                                className={`aspect-square rounded-2xl flex items-center justify-center border-2 transition-all ${avatarType === 'icon' && selectedIcon === 'crown' ? 'border-primary bg-primary-container/30' : 'border-outline-variant hover:border-primary/50 bg-surface'}`}
+                                                className={`aspect-square rounded-xl flex items-center justify-center border-2 transition-all ${avatarType === 'icon' && selectedIcon === 'crown' ? 'border-primary bg-primary-container/30' : 'border-outline-variant hover:border-primary/50 bg-surface'}`}
                                             >
-                                                <img src={crownLogo} className="w-8 h-8 opacity-80" alt="Crown" />
+                                                <img src={crownLogo} className="w-6 h-6 opacity-80" alt="Crown" />
                                             </button>
 
                                             {/* Other Icons */}
-                                            {AVATAR_ICONS.filter(i => i.value !== 'crown').map(avatar => (
+                                            {AVATAR_ICONS.filter(i => i.value !== 'crown').slice(0, showAllAvatars ? undefined : 13).map(avatar => (
                                                 <button
                                                     key={avatar.value}
                                                     onClick={() => { setAvatarType('icon'); setSelectedIcon(avatar.value) }}
-                                                    className={`aspect-square rounded-2xl flex items-center justify-center border-2 transition-all ${avatarType === 'icon' && selectedIcon === avatar.value ? 'border-primary bg-primary-container/30 text-primary' : 'border-outline-variant hover:border-primary/50 bg-surface text-on-surface-variant'}`}
+                                                    className={`aspect-square rounded-xl flex items-center justify-center border-2 transition-all ${avatarType === 'icon' && selectedIcon === avatar.value ? 'border-primary bg-primary-container/30 text-primary' : 'border-outline-variant hover:border-primary/50 bg-surface text-on-surface-variant'}`}
                                                     title={avatar.label}
                                                 >
-                                                    <avatar.icon className="w-8 h-8" />
+                                                    <avatar.icon className="w-5 h-5" />
                                                 </button>
                                             ))}
                                         </div>
@@ -359,9 +371,19 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
 
                                         {/* Colors */}
                                         <div>
-                                            <label className="text-xs font-bold text-on-surface-variant uppercase mb-3 block tracking-wider">Cor do Marcador</label>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Cor do Marcador</label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowAllColors(!showAllColors)}
+                                                    className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
+                                                >
+                                                    {showAllColors ? 'Ver menos' : 'Ver todas'}
+                                                    {showAllColors ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                                </button>
+                                            </div>
                                             <div className="flex flex-wrap gap-2">
-                                                {COLORS.map(c => (
+                                                {COLORS.slice(0, showAllColors ? undefined : 14).map(c => (
                                                     <button
                                                         key={c.value}
                                                         type="button"
@@ -378,9 +400,19 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
 
                                         {/* Icons */}
                                         <div>
-                                            <label className="text-xs font-bold text-on-surface-variant uppercase mb-3 block tracking-wider">Ícone</label>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Ícone</label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowAllIcons(!showAllIcons)}
+                                                    className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
+                                                >
+                                                    {showAllIcons ? 'Ver menos' : 'Ver todos'}
+                                                    {showAllIcons ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                                </button>
+                                            </div>
                                             <div className="grid grid-cols-7 gap-2">
-                                                {ICONS.map(i => (
+                                                {ICONS.slice(0, showAllIcons ? undefined : 14).map(i => (
                                                     <button
                                                         key={i.value}
                                                         type="button"
