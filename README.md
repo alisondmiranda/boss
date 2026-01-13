@@ -1,12 +1,12 @@
 # Boss - Seu Assistente Pessoal Inteligente
 
-Boss é um gerenciador de tarefas moderno e minimalista potencializado por Inteligência Artificial (Google Gemini). Organize sua vida, gerencie projetos e converse com um assistente que entende o seu contexto.
+Boss é um gerenciador de tarefas moderno e minimalista potencializado por Inteligência Artificial. Organize sua vida, gerencie projetos e converse com um assistente que entende o seu contexto.
 
 ## 🚀 Funcionalidades
 
 - **Dashboard Intuitivo**: Visualização clara de tarefas com status (A fazer, Em progresso, Concluído).
-- **Integração com IA**: Chat integrado com o Boss (Gemini) para ajudar a criar tarefas, dar sugestões e organizar seu dia.
-- **Setores Personalizáveis**: Organize tarefas por áreas da vida (Trabalho, Pessoal, Saúde, etc.) com cores e ícones.
+- **Integração com IA**: Chat integrado com o Boss para ajudar a criar tarefas, dar sugestões e organizar seu dia.
+- **Listas Personalizáveis**: Organize tarefas por áreas da vida (Trabalho, Pessoal, Saúde, etc.) com cores e ícones.
 - **Sidebar Dinâmica**: Navegação estilo Google Tasks, com modos de foco (Listas ou Chat).
 - **Design Premium**: Interface limpa, animações suaves e tema visual elegante.
 
@@ -18,13 +18,13 @@ Boss é um gerenciador de tarefas moderno e minimalista potencializado por Intel
 - **Animações**: Framer Motion
 - **Ícones**: Lucide React
 - **Backend (BaaS)**: Supabase (Auth & Database)
-- **IA**: Google Gemini API
+- **IA**: Google Generative AI
 
 ## 📦 Instalação
 
 1. Clone o repositório:
 ```bash
-git clone https://github.com/seu-usuario/boss-gemini.git
+git clone https://github.com/alisondmiranda/boss.git
 ```
 
 2. Instale as dependências:

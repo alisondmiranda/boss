@@ -1,8 +1,0 @@
-src/App.tsx(3,10): error TS6133: 'ArrowRight' is declared but its value is never read.
-src/App.tsx(3,43): error TS6133: 'User' is declared but its value is never read.
-src/App.tsx(3,57): error TS6133: 'Linkedin' is declared but its value is never read.
-src/App.tsx(374,10): error TS6133: 'LoginButton' is declared but its value is never read.
-src/App.tsx(374,33): error TS6133: 'provider' is declared but its value is never read.
-src/components/SettingsModal.tsx(5,39): error TS6133: 'Linkedin' is declared but its value is never read.
-src/components/SettingsModal.tsx(26,19): error TS6133: 'signInWithGoogle' is declared but its value is never read.
-src/store/authStore.ts(68,66): error TS2345: Argument of type 'string' is not assignable to parameter of type 'UserIdentity'.
