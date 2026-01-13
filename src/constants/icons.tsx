@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import { Sector } from '../store/settingsStore'
 
-const Anteater = ({ className }: { className?: string }) => (
+const Panda = ({ className }: { className?: string }) => (
     <svg
         xmlns="http://www.w3.org/2000/svg"
         width="24"
@@ -20,10 +20,19 @@ const Anteater = ({ className }: { className?: string }) => (
         strokeLinejoin="round"
         className={className}
     >
-        {/* Tail (Bandeira) and Body silhouette */}
-        <path d="M22 6c0 0-1 9-1 12c0 4-4 4-9 4H4" />
-        <path d="M21 6c-3-1-6 1-8 4-2 3-5 3-8 3H1.5l6.5 4h5c4 0 7-3 8-11z" />
-        <circle cx="8" cy="12.5" r="0.5" fill="currentColor" />
+        {/* Face */}
+        <circle cx="12" cy="13" r="8" />
+        {/* Ears */}
+        <circle cx="6.5" cy="6.5" r="2.5" fill="currentColor" />
+        <circle cx="17.5" cy="6.5" r="2.5" fill="currentColor" />
+        {/* Eye Patches */}
+        <ellipse cx="9" cy="11.5" rx="2" ry="2.5" fill="currentColor" />
+        <ellipse cx="15" cy="11.5" rx="2" ry="2.5" fill="currentColor" />
+        {/* Eyes (inner white) */}
+        <circle cx="9" cy="11" r="0.5" fill="white" />
+        <circle cx="15" cy="11" r="0.5" fill="white" />
+        {/* Nose */}
+        <path d="M11 15h2l-1 1z" fill="currentColor" />
     </svg>
 )
 
@@ -59,7 +68,7 @@ export const AVATAR_ICONS = [
     { value: 'ghost', label: 'Fantasma', icon: Ghost },
     { value: 'skull', label: 'Caveira', icon: Skull },
     { value: 'cat', label: 'Gato', icon: Cat },
-    { value: 'anteater', label: 'Tamanduá', icon: Anteater },
+    { value: 'panda', label: 'Panda', icon: Panda },
     { value: 'dog', label: 'Cachorro', icon: Dog },
     { value: 'rabbit', label: 'Coelho', icon: Rabbit },
     { value: 'bird', label: 'Pássaro', icon: Bird },
