@@ -1,30 +1,52 @@
 # Boss - Seu Assistente Pessoal Inteligente
 
-Boss é um gerenciador de tarefas moderno e minimalista potencializado por Inteligência Artificial. Organize sua vida, gerencie projetos e converse com um assistente que entende o seu contexto.
+Boss é um gerenciador de tarefas moderno, minimalista e inteligente. Organize sua vida, gerencie projetos e tenha controle total das suas atividades com uma interface elegante e fluida.
 
 ## 🚀 Funcionalidades
 
-- **Dashboard Intuitivo**: Visualização clara de tarefas com status (A fazer, Em progresso, Concluído).
-- **Integração com IA**: Chat integrado com o Boss para ajudar a criar tarefas, dar sugestões e organizar seu dia.
-- **Listas Personalizáveis**: Organize tarefas por áreas da vida (Trabalho, Pessoal, Saúde, etc.) com cores e ícones.
-- **Sidebar Dinâmica**: Navegação estilo Google Tasks, com modos de foco (Listas ou Chat).
-- **Design Premium**: Interface limpa, animações suaves e tema visual elegante.
+### Gerenciamento de Tarefas
+- **Criação rápida**: Adicione tarefas instantaneamente com um input intuitivo
+- **Status visual**: Marque tarefas como concluídas com um clique
+- **Edição inline**: Clique no título para editar diretamente
+- **Lixeira inteligente**: Tarefas excluídas vão para a lixeira, podendo ser restauradas
+
+### Listas Personalizáveis
+- **Cores vibrantes**: 20+ opções de cores para organizar visualmente
+- **Ícones únicos**: Escolha entre dezenas de ícones para identificar cada lista
+- **Filtros rápidos**: Filtre tarefas por uma ou múltiplas listas
+
+### Interface Premium
+- **Design Material You**: Interface inspirada no Google Material Design 3
+- **Animações suaves**: Transições fluidas com Framer Motion
+- **Sidebar dinâmica**: Navegação colapsável estilo Google Tasks
+- **Modo claro**: Tema clean e profissional
+
+### Autenticação Segura
+- **Login social**: Entre com Google, GitHub ou LinkedIn
+- **Email/senha**: Cadastro tradicional com confirmação por email
+- **Perfil customizável**: Escolha seu avatar entre diversos ícones
+
+### Recursos Avançados
+- **PWA**: Instale como app no seu dispositivo
+- **Sincronização em tempo real**: Seus dados sempre atualizados via Supabase
+- **Persistência na nuvem**: Acesse de qualquer lugar
 
 ## 🛠️ Tecnologias
 
-- **Frontend**: React, TypeScript, Vite
+- **Frontend**: React 18, TypeScript, Vite
 - **Estilização**: Tailwind CSS
 - **Estado**: Zustand
 - **Animações**: Framer Motion
 - **Ícones**: Lucide React
-- **Backend (BaaS)**: Supabase (Auth & Database)
-- **IA**: Google Generative AI
+- **Backend**: Supabase (Auth & Database & Realtime)
+- **IA** *(em desenvolvimento)*: Google Generative AI
 
 ## 📦 Instalação
 
 1. Clone o repositório:
 ```bash
 git clone https://github.com/alisondmiranda/boss.git
+cd boss
 ```
 
 2. Instale as dependências:
@@ -32,7 +54,7 @@ git clone https://github.com/alisondmiranda/boss.git
 npm install
 ```
 
-3. Configure as variáveis de ambiente (`.env`):
+3. Configure as variáveis de ambiente (`.env.local`):
 ```env
 VITE_SUPABASE_URL=sua_url_supabase
 VITE_SUPABASE_ANON_KEY=sua_chave_anonima
@@ -45,9 +67,10 @@ npm run dev
 
 ## 🚀 Deploy
 
-Este projeto está pronto para deploy na **Netlify** ou **Vercel**.
-Basta conectar seu repositório GitHub e configurar as variáveis de ambiente no painel de controle da plataforma.
+Este projeto está configurado para deploy automático na **Netlify**.
+
+[![Netlify Status](https://api.netlify.com/api/v1/badges/your-badge-id/deploy-status)](https://app.netlify.com)
 
 ---
 
-Desenvolvido com ❤️ por Alison Miranda.
+**Boss v1.2.0** • Desenvolvido com ❤️ por Alison Miranda
