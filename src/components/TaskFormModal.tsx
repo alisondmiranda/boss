@@ -119,13 +119,6 @@ export function TaskFormModal({
         onClose()
     }
 
-    const toggleSector = (sectorId: string) => {
-        setSelectedSectors(prev =>
-            prev.includes(sectorId)
-                ? prev.filter(id => id !== sectorId)
-                : [...prev, sectorId]
-        )
-    }
 
     const addSubtask = () => {
         if (!newSubtaskInput.trim()) return
@@ -413,32 +406,61 @@ export function TaskFormModal({
                                                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
                                                 className="absolute bottom-full left-0 mb-2 w-56 bg-surface rounded-lg shadow-5 border border-outline-variant flex flex-col py-1 z-[60] overflow-hidden"
                                             >
-                                                {sectors.map(s => {
-                                                    const isSelected = selectedSectors.includes(s.id)
-                                                    const colorClass = getSectorColorClass(s.color)
-                                                    return (
-                                                        <button
-                                                            key={s.id}
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation()
-                                                                toggleSector(s.id)
-                                                                setIsSectorDropdownOpen(false)
-                                                            }}
-                                                            className="px-4 py-2.5 text-sm text-left flex items-center gap-3 hover:bg-surface-variant/50 transition-colors w-full text-on-surface"
-                                                        >
-                                                            {(() => {
-                                                                const IconComp = ICONS.find(i => i.value === s.icon)?.icon || Tag
-                                                                const textColor = colorClass.split(' ')[1]
-                                                                return <IconComp className={`w-4 h-4 ${textColor}`} />
-                                                            })()}
-                                                            <span className={`flex-1 ${isSelected ? 'font-medium' : ''}`}>
-                                                                {s.label}
-                                                            </span>
-                                                            {isSelected && <Check className="w-3 h-3 text-primary" />}
-                                                        </button>
-                                                    )
-                                                })}
+                                                {sectors
+                                                    .filter(s => {
+                                                        // Hide 'Geral' if any other sector is selected
+                                                        const isGeral = s.label.toLowerCase() === 'geral' || s.label.toLowerCase() === 'general'
+                                                        const hasOtherSelected = selectedSectors.some(id => {
+                                                            const sec = sectors.find(sec => sec.id === id)
+                                                            return sec && sec.label.toLowerCase() !== 'geral' && sec.label.toLowerCase() !== 'general'
+                                                        })
+                                                        if (isGeral && hasOtherSelected) return false
+                                                        return true
+                                                    })
+                                                    .map(s => {
+                                                        const isSelected = selectedSectors.includes(s.id)
+                                                        const colorClass = getSectorColorClass(s.color)
+                                                        return (
+                                                            <button
+                                                                key={s.id}
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    const isGeral = s.label.toLowerCase() === 'geral' || s.label.toLowerCase() === 'general'
+                                                                    if (isGeral) {
+                                                                        // Selecting Geral clears other selections
+                                                                        setSelectedSectors([s.id])
+                                                                    } else {
+                                                                        // Selecting other sector removes Geral if present
+                                                                        setSelectedSectors(prev => {
+                                                                            const withoutGeral = prev.filter(id => {
+                                                                                const sec = sectors.find(sec => sec.id === id)
+                                                                                return sec && sec.label.toLowerCase() !== 'geral' && sec.label.toLowerCase() !== 'general'
+                                                                            })
+                                                                            if (withoutGeral.includes(s.id)) {
+                                                                                // Deselecting - if becomes empty, Geral will be fallback
+                                                                                return withoutGeral.filter(id => id !== s.id)
+                                                                            } else {
+                                                                                return [...withoutGeral, s.id]
+                                                                            }
+                                                                        })
+                                                                    }
+                                                                    // Kept open for multi-selection
+                                                                }}
+                                                                className="px-4 py-2.5 text-sm text-left flex items-center gap-3 hover:bg-surface-variant/50 transition-colors w-full text-on-surface"
+                                                            >
+                                                                {(() => {
+                                                                    const IconComp = ICONS.find(i => i.value === s.icon)?.icon || Tag
+                                                                    const textColor = colorClass.split(' ')[1]
+                                                                    return <IconComp className={`w-4 h-4 ${textColor}`} />
+                                                                })()}
+                                                                <span className={`flex-1 ${isSelected ? 'font-medium' : ''}`}>
+                                                                    {s.label}
+                                                                </span>
+                                                                {isSelected && <Check className="w-3 h-3 text-primary" />}
+                                                            </button>
+                                                        )
+                                                    })}
                                             </motion.div>
                                         </>
                                     )}

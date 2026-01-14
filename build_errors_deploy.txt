@@ -1,0 +1,14 @@
+src/components/TaskFormModal.tsx(122,11): error TS6133: 'toggleSector' is declared but its value is never read.
+src/components/widgets/TimeHubWidget.tsx(2,82): error TS6133: 'X' is declared but its value is never read.
+src/components/widgets/TimeHubWidget.tsx(114,32): error TS6133: 'syncToSupabase' is declared but its value is never read.
+src/components/widgets/TimeHubWidget.tsx(824,11): error TS6133: 'strokeDashoffset' is declared but its value is never read.
+src/components/widgets/TimeHubWidget.tsx(848,49): error TS2322: Type '{ type: "text"; inputmode: string; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; onBlur: (e: FocusEvent<HTMLInputElement, Element>) => void; onKeyDown: (e: KeyboardEvent<...>) => false | void; className: string; }' is not assignable to type 'DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>'.
+  Property 'inputmode' does not exist on type 'DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>'. Did you mean 'inputMode'?
+src/components/widgets/TimeHubWidget.tsx(849,118): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'PomodoroSettings'.
+  No index signature with a parameter of type 'string' was found on type 'PomodoroSettings'.
+src/components/widgets/TimeHubWidget.tsx(961,53): error TS2322: Type '{ type: "text"; inputmode: string; value: number; onChange: (e: ChangeEvent<HTMLInputElement>) => void; className: string; }' is not assignable to type 'DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>'.
+  Property 'inputmode' does not exist on type 'DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>'. Did you mean 'inputMode'?
+src/components/widgets/TimeHubWidget.tsx(1038,41): error TS2322: Type '{ type: "text"; inputmode: string; placeholder: string; value: string; onFocus: () => void; onChange: (e: ChangeEvent<HTMLInputElement>) => void; onBlur: (e: FocusEvent<...>) => void; onKeyDown: (e: KeyboardEvent<...>) => false | void; className: string; title: string; }' is not assignable to type 'DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>'.
+  Property 'inputmode' does not exist on type 'DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>'. Did you mean 'inputMode'?
+src/store/widgetStore.ts(497,50): error TS6133: 'e' is declared but its value is never read.
+src/store/widgetStore.ts(502,19): error TS6133: 'data' is declared but its value is never read.

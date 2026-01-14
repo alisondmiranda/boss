@@ -4,7 +4,7 @@ import {
     Plus, Trash2, LogOut,
     Settings, Send, Loader2,
     Calendar, Tag, ListTodo, Ghost,
-    MessageCircle, CheckCircle2, PanelLeftClose,
+    MessageCircle, CheckCircle2, PanelLeftClose, PanelRightOpen,
     Search, X
 } from 'lucide-react'
 import crownLogo from '../assets/crown.svg'
@@ -17,6 +17,8 @@ import { sendMessageToGemini, GeminiResponse } from '../lib/gemini'
 import { RecurrenceRule } from './RecurrencePicker'
 import { TaskFormModal } from './TaskFormModal'
 import { TaskItem } from './TaskItem'
+import { RightSidebar } from './RightSidebar'
+import { useUIStore } from '../store/uiStore'
 
 
 interface ChatMessage {
@@ -30,6 +32,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 export function Dashboard() {
+    const { toggleRightSidebar, isRightSidebarOpen } = useUIStore()
     const { signOut, user } = useAuthStore()
     const {
         tasks, trashTasks, fetchTasks, addTask, toggleTask,
@@ -43,6 +46,10 @@ export function Dashboard() {
     const [settingsTab, setSettingsTab] = useState<'api' | 'sectors' | 'profile'>('api')
     const [filter, setFilter] = useState<string[]>([])
     const [searchQuery, setSearchQuery] = useState('')
+    const [sortBy, setSortBy] = useState<'dueDate' | 'createdAt' | 'name'>(() => {
+        const saved = localStorage.getItem('boss-task-sort')
+        return (saved as 'dueDate' | 'createdAt' | 'name') || 'dueDate'
+    })
 
     // Sidebar State
     const [sidebarOpen] = useState(true) // For Mobile Drawer
@@ -115,6 +122,35 @@ export function Dashboard() {
         }
         return true
     })
+
+    // Sorted tasks
+    const sortedTasks = [...filteredTasks].sort((a, b) => {
+        switch (sortBy) {
+            case 'dueDate':
+                // Tasks with due date first, sorted by date (earliest first)
+                // Then tasks without due date, sorted by creation
+                if (a.due_at && b.due_at) {
+                    const diff = new Date(a.due_at).getTime() - new Date(b.due_at).getTime()
+                    if (diff !== 0) return diff
+                    // Tie-breaker: creation date (older first)
+                    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                }
+                if (a.due_at && !b.due_at) return -1
+                if (!a.due_at && b.due_at) return 1
+                return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            case 'createdAt':
+                return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            case 'name':
+                return a.title.localeCompare(b.title, 'pt-BR')
+            default:
+                return 0
+        }
+    })
+
+    const handleSortChange = (newSort: 'dueDate' | 'createdAt' | 'name') => {
+        setSortBy(newSort)
+        localStorage.setItem('boss-task-sort', newSort)
+    }
 
 
 
@@ -561,8 +597,19 @@ export function Dashboard() {
                                 )}
                             </AnimatePresence>
                         </div>
+
+                        {/* Right Sidebar Toggle - à direita do perfil */}
+                        {!isRightSidebarOpen && (
+                            <button
+                                onClick={toggleRightSidebar}
+                                className="w-11 h-11 rounded-full border border-outline-variant hover:border-primary/50 text-on-surface-variant hover:text-primary hover:bg-surface-variant/30 flex items-center justify-center transition-all"
+                                title="Abrir Ferramentas"
+                            >
+                                <PanelRightOpen className="w-5 h-5" />
+                            </button>
+                        )}
                     </div>
-                </header >
+                </header>
 
                 {/* Task Board / Main Views */}
                 < div className="flex-1 overflow-y-auto px-6 lg:px-10 pb-20 custom-scrollbar relative" >
@@ -733,8 +780,22 @@ export function Dashboard() {
 
                                 {/* Tasks List */}
                                 <div className="space-y-3 pb-20">
+                                    {/* Sort dropdown */}
+                                    {sidebarMode !== 'done' && (
+                                        <div className="flex items-center justify-end mb-2">
+                                            <select
+                                                value={sortBy}
+                                                onChange={(e) => handleSortChange(e.target.value as 'dueDate' | 'createdAt' | 'name')}
+                                                className="text-[11px] text-on-surface-variant bg-surface border border-outline-variant/30 rounded-lg px-2 py-1 outline-none focus:border-primary"
+                                            >
+                                                <option value="dueDate">Por vencimento</option>
+                                                <option value="createdAt">Por criação</option>
+                                                <option value="name">Por nome</option>
+                                            </select>
+                                        </div>
+                                    )}
                                     <AnimatePresence mode='popLayout'>
-                                        {filteredTasks
+                                        {sortedTasks
                                             .filter(t => {
                                                 if (sidebarMode === 'done') return t.status === 'done';
                                                 return t.status !== 'done';
@@ -867,6 +928,8 @@ export function Dashboard() {
 
                 </div >
             </main >
+
+            <RightSidebar />
         </div >
     )
 }
