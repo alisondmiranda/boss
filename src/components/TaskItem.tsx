@@ -11,7 +11,7 @@ interface TaskItemProps {
     taskSectors: string[]
     sectors: Sector[]
     toggleTask: (id: string, status: Task['status']) => void
-    updateTaskSector: (id: string, sectorId: string) => void
+    toggleTaskSector: (taskId: string, sectorId: string, allSectors: { id: string; label: string }[]) => Promise<void>
     setTaskMenuOpen: (id: string | null) => void
     taskMenuOpen: string | null
     handleMoveToTrash: (id: string) => void
@@ -29,7 +29,7 @@ import { format, isPast, isToday, isTomorrow, isThisYear } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 export function TaskItem({
-    task, taskSectors, sectors, toggleTask, updateTaskSector,
+    task, taskSectors, sectors, toggleTask, toggleTaskSector,
     setTaskMenuOpen, taskMenuOpen, handleMoveToTrash, updateTask, onEditClick, onDateClick, onRecurrenceClick,
     updateSubtask, addSubtask, toggleSubtask, deleteSubtask
 }: TaskItemProps) {
@@ -42,9 +42,29 @@ export function TaskItem({
     const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null)
     const [editSubtaskTitle, setEditSubtaskTitle] = useState('')
 
+    const [animationState, setAnimationState] = useState<'idle' | 'celebrating' | 'exiting'>('idle')
+
     const handleSubtaskEditStart = (id: string, title: string) => {
         setEditingSubtaskId(id)
         setEditSubtaskTitle(title)
+    }
+
+    const handleToggleCompletion = async () => {
+        if (task.status !== 'done') {
+            setAnimationState('celebrating')
+            // 1. Celebração!
+            setTimeout(() => {
+                setAnimationState('exiting')
+                // 2. Saída
+                setTimeout(() => {
+                    toggleTask(task.id, task.status)
+                    // O componente vai desmontar aqui, mas se falhar, reseta
+                    setTimeout(() => setAnimationState('idle'), 100)
+                }, 300)
+            }, 500) // Tempo maior de apreciação da vitória
+        } else {
+            toggleTask(task.id, task.status)
+        }
     }
 
     const handleSubtaskEditSave = () => {
@@ -134,20 +154,39 @@ export function TaskItem({
             ref={containerRef}
             layout
             initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
+            animate={{
+                opacity: animationState === 'exiting' ? 0 : 1,
+                x: animationState === 'exiting' ? 50 : 0,
+                scale: animationState === 'celebrating' ? 1.03 : (animationState === 'exiting' ? 0.9 : 1),
+                borderColor: animationState === 'celebrating' ? 'rgba(var(--primary), 0.5)' : 'transparent',
+                backgroundColor: animationState === 'celebrating' ? 'rgba(var(--primary), 0.05)' : '',
+                boxShadow: animationState === 'celebrating' ? '0 10px 40px -10px rgba(var(--primary), 0.3)' : '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)'
+            }}
             exit={{ opacity: 0, x: 20 }}
-            className="card-filled !bg-surface !p-0 flex flex-col group hover:shadow-1 transition-all border border-transparent hover:border-outline-variant/30 relative"
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            className={`card-filled !bg-surface !p-0 flex flex-col group hover:shadow-1 transition-all border border-transparent hover:border-outline-variant/30 relative ${animationState !== 'idle' ? 'pointer-events-none z-10' : ''}`}
         >
             {/* Main Task Row */}
             <div className="flex items-center gap-4 p-4 w-full">
                 <button
-                    onClick={() => toggleTask(task.id, task.status)}
-                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ${task.status === 'done'
-                        ? 'bg-primary border-primary text-on-primary'
-                        : 'border-outline hover:border-primary text-transparent'
+                    onClick={handleToggleCompletion}
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 relative overflow-hidden ${task.status === 'done' || animationState !== 'idle'
+                        ? 'bg-primary border-primary text-on-primary scale-110 shadow-[0_0_15px_rgba(var(--primary),0.6)]'
+                        : 'border-outline hover:border-primary text-transparent hover:bg-primary/5 hover:scale-105'
                         }`}
                 >
-                    <CheckCircle2 className="w-4 h-4" />
+                    <AnimatePresence>
+                        {(task.status === 'done' || animationState !== 'idle') && (
+                            <motion.div
+                                initial={{ scale: 0, rotate: -90 }}
+                                animate={{ scale: 1, rotate: 0 }}
+                                exit={{ scale: 0 }}
+                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            >
+                                <CheckCircle2 className="w-4 h-4" />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </button>
 
                 {isEditing ? (
@@ -172,6 +211,19 @@ export function TaskItem({
                         >
                             {task.title}
                         </span>
+
+                        {/* Description */}
+                        {task.details && !isEditing && (
+                            <p
+                                className={`text-xs text-on-surface-variant line-clamp-2 mt-0.5 ${task.status === 'done' ? 'line-through opacity-60' : ''}`}
+                                onClick={() => {
+                                    setIsExpanded(true)
+                                    setIsEditing(true)
+                                }}
+                            >
+                                {task.details}
+                            </p>
+                        )}
 
                         {/* Date & Recurrence Info */}
                         {(dateDisplay || task.recurrence_id || (task.subtasks && task.subtasks.length > 0)) && (
@@ -262,7 +314,7 @@ export function TaskItem({
                                                 key={s.id}
                                                 onClick={(e) => {
                                                     e.stopPropagation()
-                                                    updateTaskSector(task.id, s.id)
+                                                    toggleTaskSector(task.id, s.id, sectors)
                                                 }}
                                                 className={`px-3 py-2 text-sm text-left flex items-center gap-2 hover:bg-surface-variant transition-colors ${isActive ? 'text-primary font-medium bg-primary-container/20' : 'text-on-surface'}`}
                                             >

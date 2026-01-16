@@ -66,6 +66,7 @@ interface TaskState {
     deleteSubtask: (subtaskId: string) => Promise<void>
     updateSubtask: (subtaskId: string, title: string) => Promise<void>
     updateSubtaskOrder: (taskId: string, subtaskIds: string[]) => Promise<void>
+    toggleTaskSector: (taskId: string, sectorId: string, allSectors: { id: string; label: string }[]) => Promise<void>
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -242,6 +243,53 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
         if (error) {
             console.error('Error updating task sector:', error)
+        }
+    },
+
+    toggleTaskSector: async (taskId, sectorId, allSectors) => {
+        const task = get().tasks.find(t => t.id === taskId)
+        if (!task) return
+
+        const selectedSector = allSectors.find(s => s.id === sectorId)
+        const isSelectingGeral = selectedSector?.label.toLowerCase() === 'geral' || selectedSector?.label.toLowerCase() === 'general'
+
+        let currentSectors = Array.isArray(task.sector) ? [...task.sector] : [task.sector]
+
+        if (isSelectingGeral) {
+            // Selecting Geral clears all others
+            currentSectors = [sectorId]
+        } else if (currentSectors.includes(sectorId)) {
+            // Deselecting a sector
+            currentSectors = currentSectors.filter(s => s !== sectorId)
+            // If empty, revert to Geral
+            if (currentSectors.length === 0) {
+                const geral = allSectors.find(s => s.label.toLowerCase() === 'geral' || s.label.toLowerCase() === 'general')
+                currentSectors = geral ? [geral.id] : ['geral']
+            }
+        } else {
+            // Adding new sector - remove Geral if present
+            currentSectors = currentSectors.filter(id => {
+                const sec = allSectors.find(s => s.id === id)
+                return sec && sec.label.toLowerCase() !== 'geral' && sec.label.toLowerCase() !== 'general'
+            })
+            currentSectors = [...currentSectors, sectorId]
+        }
+
+        // Optimistic Update
+        set(state => ({
+            tasks: state.tasks.map(t => t.id === taskId ? { ...t, sector: currentSectors } : t)
+        }))
+
+        // Server Update
+        const { error } = await supabase
+            .from('tasks')
+            .update({ sector: currentSectors })
+            .eq('id', taskId)
+
+        if (error) {
+            console.error('Error toggling task sector:', error)
+            // Revert on error (could use previous state if stored, but fetchTasks is safer for sync)
+            get().fetchTasks()
         }
     },
 

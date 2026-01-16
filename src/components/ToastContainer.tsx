@@ -28,6 +28,18 @@ export function ToastContainer() {
 
                         <p className="text-sm font-medium flex-1">{toast.message}</p>
 
+                        {toast.action && (
+                            <button
+                                onClick={() => {
+                                    toast.action?.onClick()
+                                    removeToast(toast.id)
+                                }}
+                                className="text-sm font-bold hover:underline px-2 py-1 rounded"
+                            >
+                                {toast.action.label}
+                            </button>
+                        )}
+
                         <button
                             onClick={() => removeToast(toast.id)}
                             className="p-1 hover:bg-black/5 rounded-full transition-colors opacity-60 hover:opacity-100"

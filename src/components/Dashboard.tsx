@@ -36,7 +36,7 @@ export function Dashboard() {
     const { signOut, user } = useAuthStore()
     const {
         tasks, trashTasks, fetchTasks, addTask, toggleTask,
-        moveToTrash, restoreTask, permanentlyDeleteTask, updateTaskSector, updateTask, updateTaskWithSubtasks,
+        moveToTrash, restoreTask, permanentlyDeleteTask, toggleTaskSector, updateTask, updateTaskWithSubtasks,
         clearDoneTasks, emptyTrash, updateSubtask, addSubtask, toggleSubtask, deleteSubtask
     } = useTaskStore()
     const { sectors, userProfile } = useSettingsStore()
@@ -189,13 +189,14 @@ export function Dashboard() {
 
 
     const handleMoveToTrash = async (id: string) => {
-        if (confirm('Deseja mover esta tarefa para a lixeira?')) {
-            try {
-                await moveToTrash(id)
-                addToast('Tarefa movida para a lixeira.', 'info')
-            } catch (error) {
-                addToast('Erro ao excluir tarefa.', 'error')
-            }
+        try {
+            await moveToTrash(id)
+            addToast('Tarefa movida para a lixeira.', 'info', {
+                label: 'Desfazer',
+                onClick: () => handleRestore(id)
+            })
+        } catch (error) {
+            addToast('Erro ao excluir tarefa.', 'error')
         }
     }
 
@@ -227,36 +228,22 @@ export function Dashboard() {
         }
     }
 
-    const handleUpdateTaskSector = async (taskId: string, sectorId: string) => {
-        const task = tasks.find(t => t.id === taskId)
-        if (!task) return
 
-        const selectedSector = sectors.find(s => s.id === sectorId)
-        const isSelectingGeral = selectedSector?.label.toLowerCase() === 'geral' || selectedSector?.label.toLowerCase() === 'general'
 
-        let currentSectors = Array.isArray(task.sector) ? [...task.sector] : [task.sector]
+    const handleToggleTask = async (id: string, currentStatus: string) => {
+        const isCompleting = currentStatus !== 'done'
 
-        if (isSelectingGeral) {
-            // Selecionar Geral limpa todos os outros
-            currentSectors = [sectorId]
-        } else if (currentSectors.includes(sectorId)) {
-            // Desmarcando um setor
-            currentSectors = currentSectors.filter(s => s !== sectorId)
-            // Se ficou vazio, volta para Geral
-            if (currentSectors.length === 0) {
-                const geral = sectors.find(s => s.label.toLowerCase() === 'geral' || s.label.toLowerCase() === 'general')
-                currentSectors = geral ? [geral.id] : ['geral']
-            }
-        } else {
-            // Adicionando novo setor - remove Geral se presente
-            currentSectors = currentSectors.filter(id => {
-                const sec = sectors.find(s => s.id === id)
-                return sec && sec.label.toLowerCase() !== 'geral' && sec.label.toLowerCase() !== 'general'
-            })
-            currentSectors = [...currentSectors, sectorId]
+        await toggleTask(id, currentStatus as any)
+
+        if (isCompleting) {
+            // Pequeno delay para aparecer depois da animação
+            setTimeout(() => {
+                addToast('Tarefa concluída! 🎉', 'success', {
+                    label: 'Desfazer',
+                    onClick: () => toggleTask(id, 'done') // Reverte de volta para todo
+                })
+            }, 500)
         }
-
-        await updateTaskSector(taskId, currentSectors)
     }
 
     const handleChatSubmit = async (e: React.FormEvent) => {
@@ -493,7 +480,7 @@ export function Dashboard() {
 
                 {/* Sidebar Footer */}
                 <div className="mt-auto px-6 py-6 border-t border-outline-variant/30 bg-surface-variant/5">
-                    <p className="text-[10px] text-on-surface-variant/30 font-bold uppercase tracking-widest pl-1">Boss v1.3.0</p>
+                    <p className="text-[10px] text-on-surface-variant/30 font-bold uppercase tracking-widest pl-1">Boss v1.3.1</p>
                 </div>
             </motion.aside>
 
@@ -830,8 +817,8 @@ export function Dashboard() {
                                                         task={task}
                                                         taskSectors={taskSectors as string[]}
                                                         sectors={sectors}
-                                                        toggleTask={toggleTask}
-                                                        updateTaskSector={handleUpdateTaskSector}
+                                                        toggleTask={handleToggleTask}
+                                                        toggleTaskSector={toggleTaskSector}
                                                         updateSubtask={updateSubtask}
                                                         addSubtask={addSubtask}
                                                         toggleSubtask={toggleSubtask}
