@@ -1,11 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import viteCompression from 'vite-plugin-compression'
 
 // https://vitejs.dev/config/
 export default defineConfig({
     plugins: [
         react(),
+        viteCompression({ algorithm: 'gzip' }),
+        viteCompression({ algorithm: 'brotliCompress', ext: '.br' }),
         VitePWA({
             registerType: 'autoUpdate',
             includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
@@ -31,5 +34,26 @@ export default defineConfig({
     ],
     server: {
         port: 3000,
+    },
+    build: {
+        minify: 'terser',
+        terserOptions: {
+            compress: {
+                drop_console: true,
+                drop_debugger: true
+            },
+            mangle: true
+        },
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    'vendor-react': ['react', 'react-dom'],
+                    'vendor-ui': ['framer-motion'],
+                    'vendor-supabase': ['@supabase/supabase-js'],
+                    'vendor-utils': ['date-fns', 'zustand']
+                }
+            }
+        }
     }
 })
+

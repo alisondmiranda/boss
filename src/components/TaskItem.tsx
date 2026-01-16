@@ -52,16 +52,16 @@ export function TaskItem({
     const handleToggleCompletion = async () => {
         if (task.status !== 'done') {
             setAnimationState('celebrating')
-            // 1. Celebração!
+            // 1. Celebração Rápida!
             setTimeout(() => {
                 setAnimationState('exiting')
-                // 2. Saída
+                // 2. Saída Rápida
                 setTimeout(() => {
                     toggleTask(task.id, task.status)
                     // O componente vai desmontar aqui, mas se falhar, reseta
                     setTimeout(() => setAnimationState('idle'), 100)
-                }, 300)
-            }, 500) // Tempo maior de apreciação da vitória
+                }, 200)
+            }, 200)
         } else {
             toggleTask(task.id, task.status)
         }
@@ -153,24 +153,22 @@ export function TaskItem({
         <motion.div
             ref={containerRef}
             layout
-            initial={{ opacity: 0, x: -20 }}
+            initial={false}
             animate={{
                 opacity: animationState === 'exiting' ? 0 : 1,
-                x: animationState === 'exiting' ? 50 : 0,
-                scale: animationState === 'celebrating' ? 1.03 : (animationState === 'exiting' ? 0.9 : 1),
-                borderColor: animationState === 'celebrating' ? 'rgba(var(--primary), 0.5)' : 'transparent',
-                backgroundColor: animationState === 'celebrating' ? 'rgba(var(--primary), 0.05)' : '',
-                boxShadow: animationState === 'celebrating' ? '0 10px 40px -10px rgba(var(--primary), 0.3)' : '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)'
+                x: animationState === 'exiting' ? 20 : 0,
+                scale: animationState === 'celebrating' ? 1.02 : (animationState === 'exiting' ? 0.95 : 1),
+                borderColor: animationState === 'celebrating' ? 'rgba(var(--primary), 0.3)' : 'transparent',
+                backgroundColor: animationState === 'celebrating' ? 'rgba(var(--primary), 0.05)' : ''
             }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             className={`card-filled !bg-surface !p-0 flex flex-col group hover:shadow-1 transition-all border border-transparent hover:border-outline-variant/30 relative ${animationState !== 'idle' ? 'pointer-events-none z-10' : ''}`}
         >
             {/* Main Task Row */}
-            <div className="flex items-center gap-4 p-4 w-full">
+            <div className="flex items-center gap-3 p-3 w-full">
                 <button
                     onClick={handleToggleCompletion}
-                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 relative overflow-hidden ${task.status === 'done' || animationState !== 'idle'
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 relative overflow-hidden ${task.status === 'done' || animationState !== 'idle'
                         ? 'bg-primary border-primary text-on-primary scale-110 shadow-[0_0_15px_rgba(var(--primary),0.6)]'
                         : 'border-outline hover:border-primary text-transparent hover:bg-primary/5 hover:scale-105'
                         }`}
@@ -183,7 +181,7 @@ export function TaskItem({
                                 exit={{ scale: 0 }}
                                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
                             >
-                                <CheckCircle2 className="w-4 h-4" />
+                                <CheckCircle2 className="w-3.5 h-3.5" />
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -197,7 +195,7 @@ export function TaskItem({
                         onChange={(e) => setEditTitle(e.target.value)}
                         onBlur={handleSave}
                         onKeyDown={handleKeyDown}
-                        className="flex-1 bg-transparent border-b border-primary outline-none py-1 text-base text-on-surface"
+                        className="flex-1 bg-transparent border-b border-primary outline-none py-1 text-sm text-on-surface"
                     />
                 ) : (
                     <div className="flex-1 flex flex-col justify-center overflow-hidden">
@@ -206,7 +204,7 @@ export function TaskItem({
                                 setIsExpanded(true)
                                 setIsEditing(true)
                             }}
-                            className={`text-base transition-all truncate select-none cursor-pointer hover:text-primary ${task.status === 'done' ? 'text-on-surface-variant line-through opacity-60' : 'text-on-surface'}`}
+                            className={`text-sm font-medium transition-all truncate select-none cursor-pointer hover:text-primary ${task.status === 'done' ? 'text-on-surface-variant line-through opacity-60' : 'text-on-surface'}`}
                             title="Clique para editar"
                         >
                             {task.title}

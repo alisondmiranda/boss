@@ -1,11 +1,12 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     Plus, Trash2, LogOut,
     Settings, Send, Loader2,
-    Calendar, Tag, ListTodo, Ghost,
-    MessageCircle, CheckCircle2, PanelLeftClose, PanelRightOpen,
-    Search, X
+    Calendar, ListTodo, Ghost, Tag,
+    PanelLeftClose, MessageCircle, PanelRightOpen,
+
+    Search, X, ChevronDown, ChevronRight, MoreVertical, Check
 } from 'lucide-react'
 import crownLogo from '../assets/crown.svg'
 import { AVATAR_ICONS, ICONS } from '../constants/icons.tsx'
@@ -54,7 +55,10 @@ export function Dashboard() {
     // Sidebar State
     const [sidebarOpen] = useState(true) // For Mobile Drawer
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(true) // For Desktop Collapse/Expand
-    const [sidebarMode, setSidebarMode] = useState<'nav' | 'chat' | 'trash' | 'done'>('nav')
+    const [sidebarMode, setSidebarMode] = useState<'nav' | 'chat' | 'trash'>('nav')
+    const [showDone, setShowDone] = useState(false)
+    const [menuOpen, setMenuOpen] = useState(false)
+
 
     // Task Context Menu State
     const [taskMenuOpen, setTaskMenuOpen] = useState<string | null>(null)
@@ -107,10 +111,10 @@ export function Dashboard() {
     }
 
     // Computed Counts
-    const doneTasksCount = tasks.filter(t => t.status === 'done').length
-    const trashTasksCount = trashTasks.length
+    const doneTasksCount = useMemo(() => tasks.filter(t => t.status === 'done').length, [tasks])
+    const trashTasksCount = useMemo(() => trashTasks.length, [trashTasks])
 
-    const filteredTasks = tasks.filter(t => {
+    const filteredTasks = useMemo(() => tasks.filter(t => {
         // Filter by sector
         if (filter.length > 0) {
             const taskSectors = Array.isArray(t.sector) ? t.sector : [t.sector]
@@ -121,10 +125,10 @@ export function Dashboard() {
             return t.title.toLowerCase().includes(searchQuery.toLowerCase())
         }
         return true
-    })
+    }), [tasks, filter, searchQuery])
 
     // Sorted tasks
-    const sortedTasks = [...filteredTasks].sort((a, b) => {
+    const sortedTasks = useMemo(() => [...filteredTasks].sort((a, b) => {
         switch (sortBy) {
             case 'dueDate':
                 // Tasks with due date first, sorted by date (earliest first)
@@ -145,7 +149,7 @@ export function Dashboard() {
             default:
                 return 0
         }
-    })
+    }), [filteredTasks, sortBy])
 
     const handleSortChange = (newSort: 'dueDate' | 'createdAt' | 'name') => {
         setSortBy(newSort)
@@ -212,11 +216,13 @@ export function Dashboard() {
         }
     }
 
+
+
     const handleClearDone = async () => {
         if (doneTasksCount === 0) return
         if (confirm(`Tem certeza que deseja mover ${doneTasksCount} tarefas concluídas para a lixeira?`)) {
             await clearDoneTasks()
-            addToast('Tarefas concluídas movidas para a lixeira.', 'success')
+            addToast('Tarefas movidas para a lixeira.', 'success')
         }
     }
 
@@ -242,7 +248,7 @@ export function Dashboard() {
                     label: 'Desfazer',
                     onClick: () => toggleTask(id, 'done') // Reverte de volta para todo
                 })
-            }, 500)
+            }, 150)
         }
     }
 
@@ -360,37 +366,7 @@ export function Dashboard() {
                             </motion.div>
                         </div>
 
-                        {/* Done */}
-                        <button
-                            onClick={() => setSidebarMode('done')}
-                            className={`w-full flex items-center rounded-r-[16px] text-sm font-medium transition-colors relative ${sidebarMode === 'done' ? 'bg-primary/10 text-primary' : 'text-on-surface hover:bg-surface-variant/30'}`}
-                        >
-                            {sidebarMode === 'done' && (
-                                <div className="absolute left-0 top-2 bottom-2 w-1 bg-primary rounded-r-full" />
-                            )}
 
-                            <div className="w-[72px] h-12 shrink-0 flex items-center justify-center">
-                                <CheckCircle2 className="w-5 h-5" />
-                            </div>
-
-                            <motion.span
-                                initial={false}
-                                animate={{ opacity: isSidebarExpanded ? 1 : 0, x: isSidebarExpanded ? 0 : -10 }}
-                                className="truncate overflow-hidden whitespace-nowrap flex-1 text-left"
-                            >
-                                Concluídas
-                            </motion.span>
-
-                            {isSidebarExpanded && (
-                                <motion.span
-                                    initial={{ opacity: 0, scale: 0.8 }}
-                                    animate={{ opacity: doneTasksCount > 0 ? 1 : 0, scale: doneTasksCount > 0 ? 1 : 0.8 }}
-                                    className={`mr-4 text-xs font-bold px-2 py-0.5 rounded-full ${sidebarMode === 'done' ? 'bg-primary/20 text-primary' : 'bg-surface-variant text-on-surface-variant'}`}
-                                >
-                                    {doneTasksCount}
-                                </motion.span>
-                            )}
-                        </button>
 
                         {/* Chat (Assistant) */}
                         <button
@@ -480,7 +456,7 @@ export function Dashboard() {
 
                 {/* Sidebar Footer */}
                 <div className="mt-auto px-6 py-6 border-t border-outline-variant/30 bg-surface-variant/5">
-                    <p className="text-[10px] text-on-surface-variant/30 font-bold uppercase tracking-widest pl-1">Boss v1.3.1</p>
+                    <p className="text-[10px] text-on-surface-variant/30 font-bold uppercase tracking-widest pl-1">Boss v1.3.3</p>
                 </div>
             </motion.aside>
 
@@ -667,9 +643,9 @@ export function Dashboard() {
                     }
 
 
-                    {/* VIEW: NAV (Tasks) & DONE */}
+                    {/* VIEW: NAV (Tasks & Done Unified) */}
                     {
-                        (sidebarMode === 'nav' || sidebarMode === 'done') && (
+                        sidebarMode === 'nav' && (
                             <div className="max-w-4xl mx-auto space-y-6 pt-4">
 
                                 {/* Quick Filters / Navigation Buttons */}
@@ -698,35 +674,95 @@ export function Dashboard() {
                                             </div>
                                         </div>
 
-                                        {/* Actions Group */}
-                                        <div className="flex items-center gap-2 shrink-0">
+                                        <div className="flex items-center gap-3 shrink-0">
+
                                             <button
                                                 onClick={() => setIsTaskFormOpen(true)}
-                                                className="h-[46px] px-4 rounded-full bg-primary text-on-primary font-bold shadow-2 hover:shadow-4 hover:scale-105 transition-all flex items-center gap-2"
+                                                className="h-[36px] px-4 rounded-full bg-primary text-on-primary font-bold shadow-sm hover:shadow-md hover:scale-105 transition-all flex items-center gap-2 text-xs"
                                             >
-                                                <Plus className="w-5 h-5" />
+                                                <Plus className="w-4 h-4" />
                                                 <span className="hidden md:inline">Nova Tarefa</span>
                                             </button>
 
-                                            <div className="w-px h-8 bg-outline-variant/50 mx-1" />
+                                            <div className="w-px h-6 bg-outline-variant/50 mx-1" />
 
-                                            <button
-                                                onClick={() => setSidebarMode('done')}
-                                                className="h-[46px] px-4 rounded-full bg-surface border border-outline-variant/50 text-on-surface-variant hover:bg-surface-variant/30 hover:text-primary transition-colors flex items-center gap-2 text-sm font-medium shadow-sm hover:shadow-md"
-                                                title="Concluídas"
-                                            >
-                                                <CheckCircle2 className="w-5 h-5" />
-                                                <span className="hidden lg:inline">Concluídas</span>
-                                            </button>
 
-                                            <button
-                                                onClick={() => setSidebarMode('trash')}
-                                                className="h-[46px] px-4 rounded-full bg-surface border border-outline-variant/50 text-on-surface-variant hover:bg-error/5 hover:text-error hover:border-error/20 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm hover:shadow-md"
-                                                title="Lixeira"
-                                            >
-                                                <Trash2 className="w-5 h-5" />
-                                                <span className="hidden lg:inline">Lixeira</span>
-                                            </button>
+
+                                            {/* Combined Menu (Sort & Actions) */}
+                                            <div className="relative">
+                                                <button
+                                                    onClick={() => setMenuOpen(!menuOpen)}
+                                                    className={`h-[36px] w-[36px] rounded-full flex items-center justify-center transition-colors ${menuOpen ? 'bg-surface-variant text-on-surface' : 'text-on-surface-variant hover:bg-surface-variant/30 hover:text-on-surface'}`}
+                                                >
+                                                    <MoreVertical className="w-5 h-5" />
+                                                </button>
+
+                                                <AnimatePresence>
+                                                    {menuOpen && (
+                                                        <>
+                                                            <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                                                            <motion.div
+                                                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                                transition={{ duration: 0.1 }}
+                                                                className="absolute right-0 top-12 w-64 bg-surface rounded-xl shadow-lg border border-outline-variant/50 z-50 py-2 flex flex-col overflow-hidden"
+                                                            >
+                                                                <div className="px-4 py-2 text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                                                                    Ordenar por
+                                                                </div>
+
+                                                                {[
+                                                                    { label: 'Minha ordem', value: 'createdAt' }, // Using createdAt as default/custom proxy for now
+                                                                    { label: 'Data de Vencimento', value: 'dueDate' },
+                                                                    { label: 'Alfabético', value: 'name' }
+                                                                ].map((option) => (
+                                                                    <button
+                                                                        key={option.value}
+                                                                        onClick={() => {
+                                                                            handleSortChange(option.value as any)
+                                                                            setMenuOpen(false)
+                                                                        }}
+                                                                        className={`w-full text-left px-4 py-2.5 text-sm flex items-center justify-between transition-colors ${sortBy === option.value ? 'bg-primary/5 text-primary font-medium' : 'text-on-surface hover:bg-on-surface/5'}`}
+                                                                    >
+                                                                        <span>{option.label}</span>
+                                                                        {sortBy === option.value && <Check className="w-4 h-4" />}
+                                                                    </button>
+                                                                ))}
+
+                                                                <div className="h-px bg-outline-variant/30 my-2 mx-4" />
+
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSidebarMode('trash')
+                                                                        setMenuOpen(false)
+                                                                    }}
+                                                                    className="w-full text-left px-4 py-2.5 text-sm text-on-surface hover:bg-on-surface/5 flex items-center gap-2 transition-colors"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                    <span>Lixeira</span>
+                                                                </button>
+
+                                                                {doneTasksCount > 0 && (
+                                                                    <>
+                                                                        <div className="h-px bg-outline-variant/30 my-2 mx-4" />
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                handleClearDone()
+                                                                                setMenuOpen(false)
+                                                                            }}
+                                                                            className="w-full text-left px-4 py-2.5 text-sm text-error hover:bg-error/10 flex items-center gap-2 transition-colors"
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                            <span>Excluir tarefas concluídas</span>
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                            </motion.div>
+                                                        </>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -751,109 +787,133 @@ export function Dashboard() {
 
 
                                 {/* Header for Done/Filtered Views */}
-                                {
-                                    sidebarMode === 'done' && (
-                                        <div className="flex items-center justify-between pb-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-primary/10 rounded-full text-primary">
-                                                    <CheckCircle2 className="w-6 h-6" />
-                                                </div>
-                                                <h2 className="text-xl font-bold text-on-surface">Tarefas Concluídas</h2>
-                                                <span className="text-sm font-medium text-on-surface-variant bg-surface-variant/50 px-2 py-0.5 rounded-full">{doneTasksCount}</span>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => setSidebarMode('nav')}
-                                                    className="text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-surface-variant/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
-                                                >
-                                                    <ListTodo className="w-4 h-4" />
-                                                    Tarefas
-                                                </button>
-                                                {doneTasksCount > 0 && (
-                                                    <button
-                                                        onClick={handleClearDone}
-                                                        className="text-sm font-medium text-error hover:bg-error/10 px-3 py-1.5 rounded-lg transition-colors"
-                                                    >
-                                                        Limpar Concluídas
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )
-                                }
+
 
 
                                 {/* Tasks List */}
                                 <div className="space-y-3 pb-20">
-                                    {/* Sort dropdown */}
-                                    {sidebarMode !== 'done' && (
-                                        <div className="flex items-center justify-end mb-2">
-                                            <select
-                                                value={sortBy}
-                                                onChange={(e) => handleSortChange(e.target.value as 'dueDate' | 'createdAt' | 'name')}
-                                                className="text-[11px] text-on-surface-variant bg-surface border border-outline-variant/30 rounded-lg px-2 py-1 outline-none focus:border-primary"
-                                            >
-                                                <option value="dueDate">Por vencimento</option>
-                                                <option value="createdAt">Por criação</option>
-                                                <option value="name">Por nome</option>
-                                            </select>
-                                        </div>
-                                    )}
-                                    <AnimatePresence mode='popLayout'>
-                                        {sortedTasks
-                                            .filter(t => {
-                                                if (sidebarMode === 'done') return t.status === 'done';
-                                                return t.status !== 'done';
-                                            })
-                                            .map((task) => {
-                                                const rawSector = task.sector
-                                                const taskSectors = Array.isArray(rawSector)
-                                                    ? rawSector.filter(Boolean)
-                                                    : (rawSector ? [rawSector] : [])
+                                    {/* PENDING TASKS */}
+                                    {sortedTasks
+                                        .filter(t => t.status !== 'done')
+                                        .map((task) => {
+                                            const rawSector = task.sector
+                                            const taskSectors = Array.isArray(rawSector)
+                                                ? rawSector.filter(Boolean)
+                                                : (rawSector ? [rawSector] : [])
 
-                                                return (
-                                                    <TaskItem
-                                                        key={task.id}
-                                                        task={task}
-                                                        taskSectors={taskSectors as string[]}
-                                                        sectors={sectors}
-                                                        toggleTask={handleToggleTask}
-                                                        toggleTaskSector={toggleTaskSector}
-                                                        updateSubtask={updateSubtask}
-                                                        addSubtask={addSubtask}
-                                                        toggleSubtask={toggleSubtask}
-                                                        deleteSubtask={deleteSubtask}
-                                                        setTaskMenuOpen={setTaskMenuOpen}
-                                                        taskMenuOpen={taskMenuOpen}
-                                                        handleMoveToTrash={handleMoveToTrash}
-                                                        updateTask={updateTask}
-                                                        onEditClick={(task) => {
-                                                            setEditingTask(task)
-                                                            setInitialOpenPicker(null)
-                                                            setIsTaskFormOpen(true)
-                                                        }}
-                                                        onDateClick={(task) => {
-                                                            setEditingTask(task)
-                                                            setInitialOpenPicker('date')
-                                                            setIsTaskFormOpen(true)
-                                                        }}
-                                                        onRecurrenceClick={(task) => {
-                                                            setEditingTask(task)
-                                                            setInitialOpenPicker('recurrence')
-                                                            setIsTaskFormOpen(true)
-                                                        }}
-                                                    />
-                                                )
-                                            })}
-                                    </AnimatePresence>
+                                            return (
+                                                <TaskItem
+                                                    key={task.id}
+                                                    task={task}
+                                                    taskSectors={taskSectors as string[]}
+                                                    sectors={sectors}
+                                                    toggleTask={handleToggleTask}
+                                                    toggleTaskSector={toggleTaskSector}
+                                                    updateSubtask={updateSubtask}
+                                                    addSubtask={addSubtask}
+                                                    toggleSubtask={toggleSubtask}
+                                                    deleteSubtask={deleteSubtask}
+                                                    setTaskMenuOpen={setTaskMenuOpen}
+                                                    taskMenuOpen={taskMenuOpen}
+                                                    handleMoveToTrash={handleMoveToTrash}
+                                                    updateTask={updateTask}
+                                                    onEditClick={(task) => {
+                                                        setEditingTask(task)
+                                                        setInitialOpenPicker(null)
+                                                        setIsTaskFormOpen(true)
+                                                    }}
+                                                    onDateClick={(task) => {
+                                                        setEditingTask(task)
+                                                        setInitialOpenPicker('date')
+                                                        setIsTaskFormOpen(true)
+                                                    }}
+                                                    onRecurrenceClick={(task) => {
+                                                        setEditingTask(task)
+                                                        setInitialOpenPicker('recurrence')
+                                                        setIsTaskFormOpen(true)
+                                                    }}
+                                                />
+                                            )
+                                        })}
 
-                                    {filteredTasks.filter(t => sidebarMode === 'done' ? t.status === 'done' : t.status !== 'done').length === 0 && (
+                                    {/* EMPTY STATE FOR PENDING */}
+                                    {sortedTasks.filter(t => t.status !== 'done').length === 0 && doneTasksCount === 0 && (
                                         <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
                                             <div className="w-24 h-24 bg-surface-variant rounded-full flex items-center justify-center mb-4">
-                                                {sidebarMode === 'done' ? <ListTodo className="w-10 h-10 text-on-surface-variant" /> : <Calendar className="w-10 h-10 text-on-surface-variant" />}
+                                                <Calendar className="w-10 h-10 text-on-surface-variant" />
                                             </div>
-                                            <h3 className="text-lg font-medium text-on-surface">{sidebarMode === 'done' ? 'Nenhuma tarefa concluída' : 'Tudo limpo!'}</h3>
-                                            <p className="text-sm text-on-surface-variant">{sidebarMode === 'done' ? 'Complete tarefas para vê-las aqui.' : 'Aproveite o momento.'}</p>
+                                            <h3 className="text-lg font-medium text-on-surface">Tudo limpo!</h3>
+                                            <p className="text-sm text-on-surface-variant">Aproveite o momento.</p>
+                                        </div>
+                                    )}
+
+                                    {/* COMPLETED SECTION */}
+                                    {doneTasksCount > 0 && (
+                                        <div className="pt-4 border-t border-dashed border-outline-variant/30 mt-6">
+                                            <div className="flex items-center justify-between mb-2 group">
+                                                <button
+                                                    onClick={() => setShowDone(!showDone)}
+                                                    className="flex items-center gap-2 text-sm font-bold text-on-surface-variant hover:text-primary transition-colors py-2 px-1 rounded-md hover:bg-surface-variant/30 flex-1 text-left"
+                                                >
+                                                    {showDone ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                                    <span>Concluídas ({doneTasksCount})</span>
+                                                </button>
+
+                                                {showDone && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            handleClearDone()
+                                                        }}
+                                                        className="text-xs font-medium text-error hover:bg-error/10 px-3 py-1.5 rounded-full transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                    >
+                                                        Limpar todas
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {showDone && sortedTasks
+                                                .filter(t => t.status === 'done')
+                                                .map((task) => {
+                                                    const rawSector = task.sector
+                                                    const taskSectors = Array.isArray(rawSector)
+                                                        ? rawSector.filter(Boolean)
+                                                        : (rawSector ? [rawSector] : [])
+
+                                                    return (
+                                                        <TaskItem
+                                                            key={task.id}
+                                                            task={task}
+                                                            taskSectors={taskSectors as string[]}
+                                                            sectors={sectors}
+                                                            toggleTask={handleToggleTask}
+                                                            toggleTaskSector={toggleTaskSector}
+                                                            updateSubtask={updateSubtask}
+                                                            addSubtask={addSubtask}
+                                                            toggleSubtask={toggleSubtask}
+                                                            deleteSubtask={deleteSubtask}
+                                                            setTaskMenuOpen={setTaskMenuOpen}
+                                                            taskMenuOpen={taskMenuOpen}
+                                                            handleMoveToTrash={handleMoveToTrash}
+                                                            updateTask={updateTask}
+                                                            onEditClick={(task) => {
+                                                                setEditingTask(task)
+                                                                setInitialOpenPicker(null)
+                                                                setIsTaskFormOpen(true)
+                                                            }}
+                                                            onDateClick={(task) => {
+                                                                setEditingTask(task)
+                                                                setInitialOpenPicker('date')
+                                                                setIsTaskFormOpen(true)
+                                                            }}
+                                                            onRecurrenceClick={(task) => {
+                                                                setEditingTask(task)
+                                                                setInitialOpenPicker('recurrence')
+                                                                setIsTaskFormOpen(true)
+                                                            }}
+                                                        />
+                                                    )
+                                                })}
                                         </div>
                                     )}
                                 </div>
