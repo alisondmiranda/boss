@@ -1,12 +1,9 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, Reorder } from 'framer-motion'
 import {
-    Plus, Trash2, LogOut,
-    Settings, Send, Loader2,
-    Calendar, ListTodo, Ghost, Tag,
-    PanelLeftClose, MessageCircle, PanelRightOpen,
-
-    Search, X, ChevronDown, ChevronRight, MoreVertical, Check
+    Plus, Trash2, LogOut, Settings, Send, Loader2, Calendar, ListTodo, Ghost, Tag,
+    PanelLeftClose, MessageCircle, PanelRightOpen, Search, X, ChevronDown,
+    ChevronRight, MoreVertical, Check
 } from 'lucide-react'
 import crownLogo from '../assets/crown.svg'
 import { AVATAR_ICONS, ICONS } from '../constants/icons.tsx'
@@ -38,18 +35,18 @@ export function Dashboard() {
     const {
         tasks, trashTasks, fetchTasks, addTask, toggleTask,
         moveToTrash, restoreTask, permanentlyDeleteTask, toggleTaskSector, updateTask, updateTaskWithSubtasks,
-        clearDoneTasks, emptyTrash, updateSubtask, addSubtask, toggleSubtask, deleteSubtask
+        clearDoneTasks, emptyTrash, updateSubtask, addSubtask, toggleSubtask, deleteSubtask, reorderTasks
     } = useTaskStore()
-    const { sectors, userProfile } = useSettingsStore()
+    const { sectors, userProfile, sortBy: sortBySettings } = useSettingsStore()
     const { addToast } = useToast()
 
     const [showSettings, setShowSettings] = useState(false)
     const [settingsTab, setSettingsTab] = useState<'api' | 'sectors' | 'profile'>('api')
     const [filter, setFilter] = useState<string[]>([])
     const [searchQuery, setSearchQuery] = useState('')
-    const [sortBy, setSortBy] = useState<'dueDate' | 'createdAt' | 'name'>(() => {
+    const [sortBy, setSortBy] = useState<'dueDate' | 'createdAt' | 'name' | 'manual'>(() => {
         const saved = localStorage.getItem('boss-task-sort')
-        return (saved as 'dueDate' | 'createdAt' | 'name') || 'dueDate'
+        return (saved as 'dueDate' | 'createdAt' | 'name' | 'manual') || 'dueDate'
     })
 
     // Sidebar State
@@ -110,9 +107,16 @@ export function Dashboard() {
         })
     }
 
-    // Computed Counts
     const doneTasksCount = useMemo(() => tasks.filter(t => t.status === 'done').length, [tasks])
     const trashTasksCount = useMemo(() => trashTasks.length, [trashTasks])
+
+    const sortedSectors = useMemo(() => {
+        return [...sectors].sort((a, b) => {
+            if (sortBySettings === 'alpha') return a.label.localeCompare(b.label)
+            if (sortBySettings === 'created') return (new Date(b.createdAt || 0).getTime()) - (new Date(a.createdAt || 0).getTime())
+            return 0
+        })
+    }, [sectors, sortBySettings])
 
     const filteredTasks = useMemo(() => tasks.filter(t => {
         // Filter by sector
@@ -134,24 +138,26 @@ export function Dashboard() {
                 // Tasks with due date first, sorted by date (earliest first)
                 // Then tasks without due date, sorted by creation
                 if (a.due_at && b.due_at) {
-                    const diff = new Date(a.due_at).getTime() - new Date(b.due_at).getTime()
-                    if (diff !== 0) return diff
-                    // Tie-breaker: creation date (older first)
-                    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                    return new Date(a.due_at).getTime() - new Date(b.due_at).getTime()
                 }
-                if (a.due_at && !b.due_at) return -1
-                if (!a.due_at && b.due_at) return 1
-                return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                if (a.due_at) return -1
+                if (b.due_at) return 1
+                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
             case 'createdAt':
-                return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
             case 'name':
                 return a.title.localeCompare(b.title, 'pt-BR')
+            case 'manual':
+                return (a.order ?? 0) - (b.order ?? 0)
             default:
                 return 0
         }
     }), [filteredTasks, sortBy])
 
-    const handleSortChange = (newSort: 'dueDate' | 'createdAt' | 'name') => {
+    const pendingTasks = useMemo(() => sortedTasks.filter(t => t.status !== 'done'), [sortedTasks])
+    const doneTasks = useMemo(() => sortedTasks.filter(t => t.status === 'done'), [sortedTasks])
+
+    const handleSortChange = (newSort: 'dueDate' | 'createdAt' | 'name' | 'manual') => {
         setSortBy(newSort)
         localStorage.setItem('boss-task-sort', newSort)
     }
@@ -410,7 +416,7 @@ export function Dashboard() {
                             </div>
                         </motion.div>
 
-                        {sectors.map((s) => {
+                        {sortedSectors.map((s) => {
                             const isSelected = sidebarMode === 'nav' && filter.includes(s.id)
                             const SectorIcon = ICONS.find(i => i.value === s.icon)?.icon || Tag
                             return (
@@ -713,9 +719,10 @@ export function Dashboard() {
                                                                 </div>
 
                                                                 {[
-                                                                    { label: 'Minha ordem', value: 'createdAt' }, // Using createdAt as default/custom proxy for now
+                                                                    { label: 'Minha ordem', value: 'manual' },
                                                                     { label: 'Data de Vencimento', value: 'dueDate' },
-                                                                    { label: 'Alfabético', value: 'name' }
+                                                                    { label: 'Alfabético', value: 'name' },
+                                                                    { label: 'Criação', value: 'createdAt' }
                                                                 ].map((option) => (
                                                                     <button
                                                                         key={option.value}
@@ -775,7 +782,7 @@ export function Dashboard() {
                                         setInitialOpenPicker(null)
                                     }}
                                     onSave={handleAddTask}
-                                    sectors={sectors}
+                                    sectors={sortedSectors}
                                     mode={editingTask ? 'edit' : 'create'}
                                     initialTitle={editingTask?.title}
                                     initialSectors={editingTask ? (Array.isArray(editingTask.sector) ? editingTask.sector : [editingTask.sector]) : []}
@@ -793,9 +800,18 @@ export function Dashboard() {
                                 {/* Tasks List */}
                                 <div className="space-y-3 pb-20">
                                     {/* PENDING TASKS */}
-                                    {sortedTasks
-                                        .filter(t => t.status !== 'done')
-                                        .map((task) => {
+                                    <Reorder.Group
+                                        axis="y"
+                                        values={pendingTasks}
+                                        onReorder={(newOrder) => {
+                                            if (sortBy !== 'manual') {
+                                                handleSortChange('manual')
+                                            }
+                                            reorderTasks(newOrder)
+                                        }}
+                                        className="space-y-3"
+                                    >
+                                        {pendingTasks.map((task) => {
                                             const rawSector = task.sector
                                             const taskSectors = Array.isArray(rawSector)
                                                 ? rawSector.filter(Boolean)
@@ -806,7 +822,7 @@ export function Dashboard() {
                                                     key={task.id}
                                                     task={task}
                                                     taskSectors={taskSectors as string[]}
-                                                    sectors={sectors}
+                                                    sectors={sortedSectors}
                                                     toggleTask={handleToggleTask}
                                                     toggleTaskSector={toggleTaskSector}
                                                     updateSubtask={updateSubtask}
@@ -832,12 +848,14 @@ export function Dashboard() {
                                                         setInitialOpenPicker('recurrence')
                                                         setIsTaskFormOpen(true)
                                                     }}
+                                                    sortBy={sortBy}
                                                 />
                                             )
                                         })}
+                                    </Reorder.Group>
 
                                     {/* EMPTY STATE FOR PENDING */}
-                                    {sortedTasks.filter(t => t.status !== 'done').length === 0 && doneTasksCount === 0 && (
+                                    {pendingTasks.length === 0 && doneTasksCount === 0 && (
                                         <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
                                             <div className="w-24 h-24 bg-surface-variant rounded-full flex items-center justify-center mb-4">
                                                 <Calendar className="w-10 h-10 text-on-surface-variant" />
@@ -872,48 +890,60 @@ export function Dashboard() {
                                                 )}
                                             </div>
 
-                                            {showDone && sortedTasks
-                                                .filter(t => t.status === 'done')
-                                                .map((task) => {
-                                                    const rawSector = task.sector
-                                                    const taskSectors = Array.isArray(rawSector)
-                                                        ? rawSector.filter(Boolean)
-                                                        : (rawSector ? [rawSector] : [])
+                                            {showDone && (
+                                                <Reorder.Group
+                                                    axis="y"
+                                                    values={doneTasks}
+                                                    onReorder={(newOrder) => {
+                                                        if (sortBy !== 'manual') {
+                                                            handleSortChange('manual')
+                                                        }
+                                                        reorderTasks(newOrder)
+                                                    }}
+                                                    className="space-y-2"
+                                                >
+                                                    {doneTasks.map((task) => {
+                                                        const rawSector = task.sector
+                                                        const taskSectors = Array.isArray(rawSector)
+                                                            ? rawSector.filter(Boolean)
+                                                            : (rawSector ? [rawSector] : [])
 
-                                                    return (
-                                                        <TaskItem
-                                                            key={task.id}
-                                                            task={task}
-                                                            taskSectors={taskSectors as string[]}
-                                                            sectors={sectors}
-                                                            toggleTask={handleToggleTask}
-                                                            toggleTaskSector={toggleTaskSector}
-                                                            updateSubtask={updateSubtask}
-                                                            addSubtask={addSubtask}
-                                                            toggleSubtask={toggleSubtask}
-                                                            deleteSubtask={deleteSubtask}
-                                                            setTaskMenuOpen={setTaskMenuOpen}
-                                                            taskMenuOpen={taskMenuOpen}
-                                                            handleMoveToTrash={handleMoveToTrash}
-                                                            updateTask={updateTask}
-                                                            onEditClick={(task) => {
-                                                                setEditingTask(task)
-                                                                setInitialOpenPicker(null)
-                                                                setIsTaskFormOpen(true)
-                                                            }}
-                                                            onDateClick={(task) => {
-                                                                setEditingTask(task)
-                                                                setInitialOpenPicker('date')
-                                                                setIsTaskFormOpen(true)
-                                                            }}
-                                                            onRecurrenceClick={(task) => {
-                                                                setEditingTask(task)
-                                                                setInitialOpenPicker('recurrence')
-                                                                setIsTaskFormOpen(true)
-                                                            }}
-                                                        />
-                                                    )
-                                                })}
+                                                        return (
+                                                            <TaskItem
+                                                                key={task.id}
+                                                                task={task}
+                                                                taskSectors={taskSectors as string[]}
+                                                                sectors={sortedSectors}
+                                                                toggleTask={handleToggleTask}
+                                                                toggleTaskSector={toggleTaskSector}
+                                                                updateSubtask={updateSubtask}
+                                                                addSubtask={addSubtask}
+                                                                toggleSubtask={toggleSubtask}
+                                                                deleteSubtask={deleteSubtask}
+                                                                setTaskMenuOpen={setTaskMenuOpen}
+                                                                taskMenuOpen={taskMenuOpen}
+                                                                handleMoveToTrash={handleMoveToTrash}
+                                                                updateTask={updateTask}
+                                                                onEditClick={(task) => {
+                                                                    setEditingTask(task)
+                                                                    setInitialOpenPicker(null)
+                                                                    setIsTaskFormOpen(true)
+                                                                }}
+                                                                onDateClick={(task) => {
+                                                                    setEditingTask(task)
+                                                                    setInitialOpenPicker('date')
+                                                                    setIsTaskFormOpen(true)
+                                                                }}
+                                                                onRecurrenceClick={(task) => {
+                                                                    setEditingTask(task)
+                                                                    setInitialOpenPicker('recurrence')
+                                                                    setIsTaskFormOpen(true)
+                                                                }}
+                                                            />
+                                                        )
+                                                    })}
+                                                </Reorder.Group>
+                                            )}
                                         </div>
                                     )}
                                 </div>

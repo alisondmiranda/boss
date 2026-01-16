@@ -40,6 +40,7 @@ export interface Task {
     recurrence_id?: string | null
     details?: string | null
     subtasks?: Subtask[]
+    order?: number
 }
 
 interface TaskState {
@@ -57,6 +58,7 @@ interface TaskState {
     moveToTrash: (id: string) => Promise<void>
     restoreTask: (id: string) => Promise<void>
     permanentlyDeleteTask: (id: string) => Promise<void>
+    reorderTasks: (newTasks: Task[]) => Promise<void>
     clearDoneTasks: () => Promise<void>
     emptyTrash: () => Promise<void>
     subscribeToTasks: () => () => void
@@ -68,6 +70,9 @@ interface TaskState {
     updateSubtaskOrder: (taskId: string, subtaskIds: string[]) => Promise<void>
     toggleTaskSector: (taskId: string, sectorId: string, allSectors: { id: string; label: string }[]) => Promise<void>
 }
+
+// Map to track pending updates for debouncing
+const pendingSectorUpdates = new Map<string, { sectors: string[]; timeout: NodeJS.Timeout }>()
 
 export const useTaskStore = create<TaskState>((set, get) => ({
     tasks: [],
@@ -135,9 +140,18 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             })
         }
 
+        const tasks = (activeData as Task[]) || []
+        const trash = validTrashTasks
+
+        // Apply any pending sectors to the freshly fetched data to prevent "flicker back"
+        const mergePending = (taskList: Task[]) => taskList.map(t => {
+            const pending = pendingSectorUpdates.get(t.id)
+            return pending ? { ...t, sector: pending.sectors } : t
+        })
+
         set({
-            tasks: (activeData as Task[]) || [],
-            trashTasks: validTrashTasks,
+            tasks: mergePending(tasks),
+            trashTasks: mergePending(trash),
             loading: false
         })
     },
@@ -180,34 +194,36 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             due_at: dueAt ? dueAt.toISOString() : null,
             recurrence_id: recurrenceId,
             details: details || null,
-            subtasks: []
+            subtasks: [],
+            order: get().tasks.length
         }
 
         set(state => ({ tasks: [newTask, ...state.tasks] }))
 
-        const { data, error } = await supabase
+        const { data: taskData, error: taskError } = await supabase
             .from('tasks')
             .insert([{
                 title,
                 sector,
-                user_id: currentUser,
                 status: 'todo',
-                due_at: dueAt ? dueAt.toISOString() : null,
+                user_id: currentUser,
+                due_at: newTask.due_at,
                 recurrence_id: recurrenceId,
-                details: details || null
+                details: newTask.details,
+                order: newTask.order
             }])
             .select()
             .single()
 
-        if (error) {
-            console.error('Error adding task:', error)
+        if (taskError) {
+            console.error('Error adding task:', taskError)
             set(state => ({ tasks: state.tasks.filter(t => t.id !== tempId) }))
-            throw error
+            throw taskError
         } else {
             // 2. Create subtasks if provided
-            if (subtasks && subtasks.length > 0 && data) {
+            if (subtasks && subtasks.length > 0 && taskData) {
                 const subtasksToInsert = subtasks.map((st, index) => ({
-                    task_id: data.id,
+                    task_id: taskData.id,
                     title: st.title,
                     completed: st.completed,
                     order: index
@@ -221,12 +237,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
                 if (subtasksError) {
                     console.error('Error creating subtasks:', subtasksError)
                 } else {
-                    data.subtasks = subtasksData
+                    taskData.subtasks = subtasksData
                 }
             }
 
             set(state => ({
-                tasks: state.tasks.map(t => t.id === tempId ? data : t)
+                tasks: state.tasks.map(t => t.id === tempId ? taskData : t)
             }))
         }
     },
@@ -253,21 +269,26 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         const selectedSector = allSectors.find(s => s.id === sectorId)
         const isSelectingGeral = selectedSector?.label.toLowerCase() === 'geral' || selectedSector?.label.toLowerCase() === 'general'
 
-        let currentSectors = Array.isArray(task.sector) ? [...task.sector] : [task.sector]
+        // Get the most current sectors (including pending ones)
+        let currentSectors: string[] = []
+        const pending = pendingSectorUpdates.get(taskId)
+
+        if (pending) {
+            currentSectors = [...pending.sectors]
+            clearTimeout(pending.timeout)
+        } else {
+            currentSectors = Array.isArray(task.sector) ? [...task.sector] : [task.sector]
+        }
 
         if (isSelectingGeral) {
-            // Selecting Geral clears all others
             currentSectors = [sectorId]
         } else if (currentSectors.includes(sectorId)) {
-            // Deselecting a sector
             currentSectors = currentSectors.filter(s => s !== sectorId)
-            // If empty, revert to Geral
             if (currentSectors.length === 0) {
                 const geral = allSectors.find(s => s.label.toLowerCase() === 'geral' || s.label.toLowerCase() === 'general')
                 currentSectors = geral ? [geral.id] : ['geral']
             }
         } else {
-            // Adding new sector - remove Geral if present
             currentSectors = currentSectors.filter(id => {
                 const sec = allSectors.find(s => s.id === id)
                 return sec && sec.label.toLowerCase() !== 'geral' && sec.label.toLowerCase() !== 'general'
@@ -275,22 +296,33 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             currentSectors = [...currentSectors, sectorId]
         }
 
-        // Optimistic Update
+        // 1. Instant Optimistic Update in UI
         set(state => ({
             tasks: state.tasks.map(t => t.id === taskId ? { ...t, sector: currentSectors } : t)
         }))
 
-        // Server Update
-        const { error } = await supabase
-            .from('tasks')
-            .update({ sector: currentSectors })
-            .eq('id', taskId)
+        // 2. Debounced Server Update
+        const timeout = setTimeout(async () => {
+            const pending = pendingSectorUpdates.get(taskId)
+            // If this timeout is still the active one for this task
+            if (pending && pending.timeout === timeout) {
+                const finalSectors = pending.sectors
 
-        if (error) {
-            console.error('Error toggling task sector:', error)
-            // Revert on error (could use previous state if stored, but fetchTasks is safer for sync)
-            get().fetchTasks()
-        }
+                const { error } = await supabase
+                    .from('tasks')
+                    .update({ sector: finalSectors })
+                    .eq('id', taskId)
+
+                if (error) {
+                    console.error('Error toggling task sector:', error)
+                    get().fetchTasks()
+                }
+
+                pendingSectorUpdates.delete(taskId)
+            }
+        }, 300)
+
+        pendingSectorUpdates.set(taskId, { sectors: currentSectors, timeout })
     },
 
     updateTask: async (id, updates) => {
@@ -477,18 +509,35 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     },
 
     permanentlyDeleteTask: async (id) => {
-        const previousTrash = get().trashTasks
-        set(state => ({ trashTasks: state.trashTasks.filter(t => t.id !== id) }))
-
-        const { error } = await supabase
-            .from('tasks')
-            .delete()
-            .eq('id', id)
-
-        if (error) {
-            console.error('Error permanently deleting task:', error)
-            set({ trashTasks: previousTrash })
+        const { error } = await supabase.from('tasks').delete().eq('id', id)
+        if (!error) {
+            set(state => ({ trashTasks: state.trashTasks.filter(t => t.id !== id) }))
         }
+    },
+
+    reorderTasks: async (newOrderOfVisible) => {
+        // 1. Update order property for each task IMMEDIATELY (sync)
+        const updatedTasks = newOrderOfVisible.map((task, index) => ({
+            ...task,
+            order: index
+        }))
+
+        // Keep non-visible tasks at the end
+        const visibleIds = new Set(newOrderOfVisible.map(t => t.id))
+        const nonVisibleTasks = get().tasks
+            .filter(t => !visibleIds.has(t.id))
+            .map((t, i) => ({ ...t, order: updatedTasks.length + i }))
+
+        const allTasks = [...updatedTasks, ...nonVisibleTasks]
+
+        // 2. Update state IMMEDIATELY for instant UI response
+        set({ tasks: allTasks })
+
+        // 3. Persist to Supabase (async, non-blocking)
+        const updates = allTasks.map(t => ({ id: t.id, order: t.order }))
+        supabase.from('tasks').upsert(updates).then(({ error }) => {
+            if (error) console.error('Error persisting task order:', error)
+        })
     },
 
     clearDoneTasks: async () => {

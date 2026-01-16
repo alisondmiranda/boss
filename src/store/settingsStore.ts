@@ -7,6 +7,7 @@ export interface Sector {
     label: string
     color: 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'pink' | 'slate' | 'indigo' | 'teal' | 'cyan' | 'amber' | 'yellow' | 'lime' | 'sky' | 'violet' | 'fuchsia' | 'rose' | 'stone' | 'zinc' | 'gray' | 'brown' | 'black' | 'white'
     icon: string
+    createdAt?: string
 }
 
 
@@ -21,6 +22,7 @@ interface SettingsState {
     geminiApiKey: string | null
     sectors: Sector[]
     userProfile: UserProfile
+    sortBy: 'manual' | 'alpha' | 'created'
 
     setGeminiApiKey: (key: string) => void
     clearGeminiApiKey: () => void
@@ -28,6 +30,8 @@ interface SettingsState {
     addSector: (sector: Sector) => void
     updateSector: (id: string, updates: Partial<Sector>) => void
     removeSector: (id: string) => void
+    reorderSectors: (newSectors: Sector[]) => void
+    setSortBy: (sort: 'manual' | 'alpha' | 'created') => void
 
     updateUserProfile: (updates: Partial<UserProfile>) => void
 
@@ -38,9 +42,9 @@ interface SettingsState {
 }
 
 const DEFAULT_SECTORS: Sector[] = [
-    { id: 'work', label: 'Work', color: 'purple', icon: 'briefcase' },
-    { id: 'health', label: 'Health', color: 'green', icon: 'heart' },
-    { id: 'personal', label: 'Personal', color: 'orange', icon: 'user' }
+    { id: 'work', label: 'Work', color: 'purple', icon: 'briefcase', createdAt: new Date().toISOString() },
+    { id: 'health', label: 'Health', color: 'green', icon: 'heart', createdAt: new Date().toISOString() },
+    { id: 'personal', label: 'Personal', color: 'orange', icon: 'user', createdAt: new Date().toISOString() }
 ]
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -56,6 +60,7 @@ export const useSettingsStore = create<SettingsState>()(
             geminiApiKey: null,
             sectors: DEFAULT_SECTORS,
             userProfile: DEFAULT_PROFILE,
+            sortBy: 'manual',
 
             setGeminiApiKey: (key) => set({ geminiApiKey: key }),
             clearGeminiApiKey: () => set({ geminiApiKey: null }),
@@ -72,12 +77,13 @@ export const useSettingsStore = create<SettingsState>()(
                     selected_icon: state.userProfile.selectedIcon,
                     custom_avatar_url: state.userProfile.customAvatarUrl,
                     sectors: state.sectors,
+                    sort_by: state.sortBy,
                     updated_at: new Date().toISOString()
                 })
             },
 
             addSector: async (sector) => {
-                const newSectors = [...get().sectors, sector]
+                const newSectors = [...get().sectors, { ...sector, createdAt: sector.createdAt || new Date().toISOString() }]
                 set({ sectors: newSectors })
                 await get()._saveToSupabase({ sectors: newSectors })
             },
@@ -90,6 +96,16 @@ export const useSettingsStore = create<SettingsState>()(
                 const newSectors = get().sectors.filter(s => s.id !== id)
                 set({ sectors: newSectors })
                 await get()._saveToSupabase({ sectors: newSectors })
+            },
+
+            reorderSectors: async (newSectors) => {
+                set({ sectors: newSectors, sortBy: 'manual' })
+                await get()._saveToSupabase({ sectors: newSectors, sortBy: 'manual' })
+            },
+
+            setSortBy: async (sort) => {
+                set({ sortBy: sort })
+                await get()._saveToSupabase({ sortBy: sort })
             },
 
             updateUserProfile: async (updates) => {
@@ -111,6 +127,7 @@ export const useSettingsStore = create<SettingsState>()(
                 if (data && !error) {
                     const updates: any = {}
                     if (data.sectors) updates.sectors = data.sectors
+                    if (data.sort_by) updates.sortBy = data.sort_by
 
                     const profileUpdates: any = {}
                     if (data.display_name !== undefined && data.display_name !== null) profileUpdates.displayName = data.display_name
@@ -165,7 +182,8 @@ export const useSettingsStore = create<SettingsState>()(
             partialize: (state) => ({
                 geminiApiKey: state.geminiApiKey,
                 sectors: state.sectors,
-                userProfile: state.userProfile
+                userProfile: state.userProfile,
+                sortBy: state.sortBy
             })
         }
     )
