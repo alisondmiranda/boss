@@ -1,2 +1,0 @@
-src/components/widgets/TimeHubWidget.tsx(2,112): error TS6133: 'ChevronUp' is declared but its value is never read.
-src/components/widgets/TimeHubWidget.tsx(2,123): error TS6133: 'ChevronDown' is declared but its value is never read.

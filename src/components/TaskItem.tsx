@@ -136,7 +136,7 @@ export function TaskItem({
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
-            className="card-filled !bg-surface !p-0 flex flex-col group hover:shadow-1 transition-all border border-transparent hover:border-outline-variant/30 relative overflow-hidden"
+            className="card-filled !bg-surface !p-0 flex flex-col group hover:shadow-1 transition-all border border-transparent hover:border-outline-variant/30 relative"
         >
             {/* Main Task Row */}
             <div className="flex items-center gap-4 p-4 w-full">
@@ -224,21 +224,23 @@ export function TaskItem({
                 <div className="relative flex gap-1 flex-wrap justify-end">
                     {task.sector && (
                         Array.isArray(task.sector) ? task.sector : [task.sector]
-                    ).map((sectorId) => {
-                        const sector = getSectorDetails(sectorId)
-                        const SectorIcon = ICONS.find(i => i.value === sector.icon)?.icon || Tag
-                        return (
-                            <button
-                                key={`${task.id}-${sectorId}`}
-                                onClick={() => setTaskMenuOpen(taskMenuOpen === task.id ? null : task.id)}
-                                className={`px-3 py-1 rounded-[8px] text-[11px] font-medium uppercase tracking-wide flex items-center gap-1.5 flex-shrink-0 cursor-pointer hover:brightness-95 transition-all ${getSectorColorClass(sector.color)}`}
-                                title="Mudar Setor"
-                            >
-                                <SectorIcon className="w-3 h-3 opacity-70" />
-                                {sector.label}
-                            </button>
-                        )
-                    })}
+                    )
+                        .map(sectorId => ({ sectorId, sector: getSectorDetails(sectorId) }))
+                        .sort((a, b) => a.sector.label.localeCompare(b.sector.label, 'pt-BR'))
+                        .map(({ sectorId, sector }) => {
+                            const SectorIcon = ICONS.find(i => i.value === sector.icon)?.icon || Tag
+                            return (
+                                <button
+                                    key={`${task.id}-${sectorId}`}
+                                    onClick={() => setTaskMenuOpen(taskMenuOpen === task.id ? null : task.id)}
+                                    className={`px-3 py-1 rounded-[8px] text-[11px] font-medium uppercase tracking-wide flex items-center gap-1.5 flex-shrink-0 cursor-pointer hover:brightness-95 transition-all ${getSectorColorClass(sector.color)}`}
+                                    title="Mudar Setor"
+                                >
+                                    <SectorIcon className="w-3 h-3 opacity-70" />
+                                    {sector.label}
+                                </button>
+                            )
+                        })}
 
                     {/* Sector Popup Menu */}
                     <AnimatePresence>
@@ -254,6 +256,7 @@ export function TaskItem({
                                     <span className="px-3 py-2 text-[10px] uppercase font-bold text-on-surface-variant/50 tracking-wider">Setores</span>
                                     {sectors.map(s => {
                                         const isActive = taskSectors.includes(s.id)
+                                        const SectorIcon = ICONS.find(i => i.value === s.icon)?.icon || Tag
                                         return (
                                             <button
                                                 key={s.id}
@@ -263,7 +266,7 @@ export function TaskItem({
                                                 }}
                                                 className={`px-3 py-2 text-sm text-left flex items-center gap-2 hover:bg-surface-variant transition-colors ${isActive ? 'text-primary font-medium bg-primary-container/20' : 'text-on-surface'}`}
                                             >
-                                                <div className={`w-2 h-2 rounded-full ${getSectorColorClass(s.color).split(' ')[0]}`} />
+                                                <SectorIcon className={`w-4 h-4 ${getSectorColorClass(s.color).split(' ')[1]}`} />
                                                 {s.label}
                                                 {isActive && <Check className="w-3 h-3 ml-auto" />}
                                             </button>

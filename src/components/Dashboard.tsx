@@ -230,14 +230,32 @@ export function Dashboard() {
     const handleUpdateTaskSector = async (taskId: string, sectorId: string) => {
         const task = tasks.find(t => t.id === taskId)
         if (!task) return
-        let currentSectors = Array.isArray(task.sector) ? task.sector : [task.sector]
-        if (currentSectors.includes(sectorId)) {
-            if (currentSectors.length > 1) {
-                currentSectors = currentSectors.filter(s => s !== sectorId)
+
+        const selectedSector = sectors.find(s => s.id === sectorId)
+        const isSelectingGeral = selectedSector?.label.toLowerCase() === 'geral' || selectedSector?.label.toLowerCase() === 'general'
+
+        let currentSectors = Array.isArray(task.sector) ? [...task.sector] : [task.sector]
+
+        if (isSelectingGeral) {
+            // Selecionar Geral limpa todos os outros
+            currentSectors = [sectorId]
+        } else if (currentSectors.includes(sectorId)) {
+            // Desmarcando um setor
+            currentSectors = currentSectors.filter(s => s !== sectorId)
+            // Se ficou vazio, volta para Geral
+            if (currentSectors.length === 0) {
+                const geral = sectors.find(s => s.label.toLowerCase() === 'geral' || s.label.toLowerCase() === 'general')
+                currentSectors = geral ? [geral.id] : ['geral']
             }
         } else {
+            // Adicionando novo setor - remove Geral se presente
+            currentSectors = currentSectors.filter(id => {
+                const sec = sectors.find(s => s.id === id)
+                return sec && sec.label.toLowerCase() !== 'geral' && sec.label.toLowerCase() !== 'general'
+            })
             currentSectors = [...currentSectors, sectorId]
         }
+
         await updateTaskSector(taskId, currentSectors)
     }
 
@@ -475,7 +493,7 @@ export function Dashboard() {
 
                 {/* Sidebar Footer */}
                 <div className="mt-auto px-6 py-6 border-t border-outline-variant/30 bg-surface-variant/5">
-                    <p className="text-[10px] text-on-surface-variant/30 font-bold uppercase tracking-widest pl-1">Boss v1.2.0</p>
+                    <p className="text-[10px] text-on-surface-variant/30 font-bold uppercase tracking-widest pl-1">Boss v1.3.0</p>
                 </div>
             </motion.aside>
 

@@ -71,9 +71,19 @@ export function TaskFormModal({
     const datePickerTriggerRef = useRef<HTMLButtonElement>(null)
     const titleInputRef = useRef<HTMLInputElement>(null)
     const subtaskInputRef = useRef<HTMLInputElement>(null)
+    const hasInitializedRef = useRef(false)
+
+    // Reset initialization flag when modal closes
+    useEffect(() => {
+        if (!isOpen) {
+            hasInitializedRef.current = false
+        }
+    }, [isOpen])
 
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && !hasInitializedRef.current) {
+            hasInitializedRef.current = true
+
             setTitle(initialTitle)
             setSelectedSectors(initialSectors)
             setDueAt(initialDueAt)
