@@ -1,0 +1,51 @@
+
+> boss@1.3.3 build
+> tsc -b && vite build
+
+src/components/Dashboard.tsx(110,17): error TS2304: Cannot find name 'sortBySettings'.
+src/components/Dashboard.tsx(111,17): error TS2304: Cannot find name 'sortBySettings'.
+src/components/Dashboard.tsx(114,18): error TS2304: Cannot find name 'sortBySettings'.
+src/components/Dashboard.tsx(301,39): error TS2304: Cannot find name 'crownLogo'.
+src/components/Dashboard.tsx(324,30): error TS2304: Cannot find name 'PanelLeftClose'.
+src/components/Dashboard.tsx(382,34): error TS2304: Cannot find name 'MessageCircle'.
+src/components/Dashboard.tsx(416,48): error TS2304: Cannot find name 'ICONS'.
+src/components/Dashboard.tsx(416,59): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/components/Dashboard.tsx(416,93): error TS2304: Cannot find name 'Tag'.
+src/components/Dashboard.tsx(470,34): error TS2304: Cannot find name 'userProfile'.
+src/components/Dashboard.tsx(476,61): error TS2304: Cannot find name 'userProfile'.
+src/components/Dashboard.tsx(479,30): error TS2304: Cannot find name 'format'.
+src/components/Dashboard.tsx(479,80): error TS2304: Cannot find name 'ptBR'.
+src/components/Dashboard.tsx(490,34): error TS2304: Cannot find name 'userProfile'.
+src/components/Dashboard.tsx(490,70): error TS2304: Cannot find name 'userProfile'.
+src/components/Dashboard.tsx(491,47): error TS2304: Cannot find name 'userProfile'.
+src/components/Dashboard.tsx(494,42): error TS2304: Cannot find name 'userProfile'.
+src/components/Dashboard.tsx(494,79): error TS2304: Cannot find name 'userProfile'.
+src/components/Dashboard.tsx(495,45): error TS2304: Cannot find name 'userProfile'.
+src/components/Dashboard.tsx(496,59): error TS2304: Cannot find name 'crownLogo'.
+src/components/Dashboard.tsx(499,75): error TS2304: Cannot find name 'AVATAR_ICONS'.
+src/components/Dashboard.tsx(499,93): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/components/Dashboard.tsx(499,110): error TS2304: Cannot find name 'userProfile'.
+src/components/Dashboard.tsx(499,145): error TS2304: Cannot find name 'AVATAR_ICONS'.
+src/components/Dashboard.tsx(504,82): error TS2304: Cannot find name 'userProfile'.
+src/components/Dashboard.tsx(522,54): error TS2304: Cannot find name 'userProfile'.
+src/components/Dashboard.tsx(537,54): error TS2304: Cannot find name 'userProfile'.
+src/components/Dashboard.tsx(537,91): error TS2304: Cannot find name 'userProfile'.
+src/components/Dashboard.tsx(538,57): error TS2304: Cannot find name 'userProfile'.
+src/components/Dashboard.tsx(539,71): error TS2304: Cannot find name 'crownLogo'.
+src/components/Dashboard.tsx(542,87): error TS2304: Cannot find name 'AVATAR_ICONS'.
+src/components/Dashboard.tsx(542,105): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/components/Dashboard.tsx(542,122): error TS2304: Cannot find name 'userProfile'.
+src/components/Dashboard.tsx(542,157): error TS2304: Cannot find name 'AVATAR_ICONS'.
+src/components/Dashboard.tsx(547,58): error TS2304: Cannot find name 'Settings'.
+src/components/Dashboard.tsx(561,54): error TS2304: Cannot find name 'Settings'.
+src/components/Dashboard.tsx(573,54): error TS2304: Cannot find name 'LogOut'.
+src/components/Dashboard.tsx(590,34): error TS2304: Cannot find name 'PanelRightOpen'.
+src/components/Dashboard.tsx(614,50): error TS2304: Cannot find name 'Loader2'.
+src/components/Dashboard.tsx(638,46): error TS2304: Cannot find name 'Send'.
+src/components/Dashboard.tsx(659,50): error TS2304: Cannot find name 'Search'.
+src/components/Dashboard.tsx(672,58): error TS2304: Cannot find name 'X'.
+src/components/Dashboard.tsx(698,54): error TS2304: Cannot find name 'MoreVertical'.
+src/components/Dashboard.tsx(731,102): error TS2304: Cannot find name 'Check'.
+src/components/Dashboard.tsx(908,62): error TS2741: Property 'reorderSubtasks' is missing in type '{ key: string; task: Task; taskSectors: string[]; sectors: Sector[]; toggleTask: (id: string, currentStatus: string) => Promise<void>; toggleTaskSector: (taskId: string, sectorId: string, allSectors: { ...; }[]) => Promise<...>; ... 10 more ...; onRecurrenceClick: (task: Task) => void; }' but required in type 'TaskItemProps'.
+src/components/Dashboard.tsx(1001,58): error TS2304: Cannot find name 'LogOut'.
+src/components/widgets/CalendarWidget.tsx(8,11): error TS6133: 'today' is declared but its value is never read.

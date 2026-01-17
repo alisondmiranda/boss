@@ -64,6 +64,7 @@ VITE_SUPABASE_ANON_KEY=sua_chave_anonima
 ```bash
 npm run dev
 ```
+   - Acesse em: [http://localhost:3000](http://localhost:3000)
 
 ## 🚀 Fluxo de Deploy
 
@@ -81,7 +82,9 @@ Sempre que houver uma alteração técnica ou funcional no código, os seguintes
    - Certifique-se de que não restaram arquivos de log (`build_*.txt`) ou scripts de migração temporários na raiz.
 
 4. **Deploy**:
-   - Realize o push para o branch principal para disparar o deploy automatizado (Netlify/Vercel).
+   - **IMPORTANTE**: Só realizar o deploy quando explicitamente solicitado pelo usuário.
+   - Realize o `git push` para o branch `main` do repositório GitHub: [https://github.com/alisondmiranda/boss](https://github.com/alisondmiranda/boss).
+   - O deploy será disparado automaticamente para o Netlify: [https://app.netlify.com/projects/boss-assistant/overview](https://app.netlify.com/projects/boss-assistant/overview).
 
 
 ---

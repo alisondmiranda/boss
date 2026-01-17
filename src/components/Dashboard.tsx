@@ -35,7 +35,7 @@ export function Dashboard() {
     const {
         tasks, trashTasks, fetchTasks, addTask, toggleTask,
         moveToTrash, restoreTask, permanentlyDeleteTask, toggleTaskSector, updateTask, updateTaskWithSubtasks,
-        clearDoneTasks, emptyTrash, updateSubtask, addSubtask, toggleSubtask, deleteSubtask, reorderTasks
+        clearDoneTasks, emptyTrash, updateSubtask, addSubtask, toggleSubtask, deleteSubtask, reorderTasks, reorderSubtasks
     } = useTaskStore()
     const { sectors, userProfile, sortBy: sortBySettings } = useSettingsStore()
     const { addToast } = useToast()
@@ -809,7 +809,7 @@ export function Dashboard() {
                                             }
                                             reorderTasks(newOrder)
                                         }}
-                                        className="space-y-3"
+                                        className="space-y-1"
                                     >
                                         {pendingTasks.map((task) => {
                                             const rawSector = task.sector
@@ -829,6 +829,7 @@ export function Dashboard() {
                                                     addSubtask={addSubtask}
                                                     toggleSubtask={toggleSubtask}
                                                     deleteSubtask={deleteSubtask}
+                                                    reorderSubtasks={reorderSubtasks}
                                                     setTaskMenuOpen={setTaskMenuOpen}
                                                     taskMenuOpen={taskMenuOpen}
                                                     handleMoveToTrash={handleMoveToTrash}
@@ -877,17 +878,15 @@ export function Dashboard() {
                                                     <span>Concluídas ({doneTasksCount})</span>
                                                 </button>
 
-                                                {showDone && (
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation()
-                                                            handleClearDone()
-                                                        }}
-                                                        className="text-xs font-medium text-error hover:bg-error/10 px-3 py-1.5 rounded-full transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                                    >
-                                                        Limpar todas
-                                                    </button>
-                                                )}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        handleClearDone()
+                                                    }}
+                                                    className={`text-xs font-medium text-error hover:bg-error/10 px-3 py-1.5 rounded-full transition-colors ${showDone ? 'opacity-0 group-hover:opacity-100 focus:opacity-100' : 'opacity-0 pointer-events-none'}`}
+                                                >
+                                                    Limpar todas
+                                                </button>
                                             </div>
 
                                             {showDone && (
@@ -900,7 +899,7 @@ export function Dashboard() {
                                                         }
                                                         reorderTasks(newOrder)
                                                     }}
-                                                    className="space-y-2"
+                                                    className="space-y-1 mt-2"
                                                 >
                                                     {doneTasks.map((task) => {
                                                         const rawSector = task.sector
@@ -920,6 +919,7 @@ export function Dashboard() {
                                                                 addSubtask={addSubtask}
                                                                 toggleSubtask={toggleSubtask}
                                                                 deleteSubtask={deleteSubtask}
+                                                                reorderSubtasks={reorderSubtasks}
                                                                 setTaskMenuOpen={setTaskMenuOpen}
                                                                 taskMenuOpen={taskMenuOpen}
                                                                 handleMoveToTrash={handleMoveToTrash}

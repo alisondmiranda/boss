@@ -47,6 +47,7 @@ interface TaskState {
     tasks: Task[]
     trashTasks: Task[]
     loading: boolean
+    isSyncing: boolean
     filter: string[]
     setFilter: (sectors: string[]) => void
     fetchTasks: () => Promise<void>
@@ -67,7 +68,8 @@ interface TaskState {
     toggleSubtask: (subtaskId: string) => Promise<void>
     deleteSubtask: (subtaskId: string) => Promise<void>
     updateSubtask: (subtaskId: string, title: string) => Promise<void>
-    updateSubtaskOrder: (taskId: string, subtaskIds: string[]) => Promise<void>
+    reorderSubtasks: (taskId: string, newSubtasks: Subtask[]) => Promise<void>
+    // updateSubtaskOrder: (taskId: string, subtaskIds: string[]) => Promise<void>
     toggleTaskSector: (taskId: string, sectorId: string, allSectors: { id: string; label: string }[]) => Promise<void>
 }
 
@@ -78,6 +80,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     tasks: [],
     trashTasks: [],
     loading: false,
+    isSyncing: false,
     filter: [],
 
     setFilter: (sectors) => set({ filter: sectors }),
@@ -531,12 +534,19 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         const allTasks = [...updatedTasks, ...nonVisibleTasks]
 
         // 2. Update state IMMEDIATELY for instant UI response
-        set({ tasks: allTasks })
+        set({ tasks: allTasks, isSyncing: true })
 
         // 3. Persist to Supabase (async, non-blocking)
-        const updates = allTasks.map(t => ({ id: t.id, order: t.order }))
-        supabase.from('tasks').upsert(updates).then(({ error }) => {
-            if (error) console.error('Error persisting task order:', error)
+        Promise.all(
+            allTasks.map(t =>
+                supabase.from('tasks').update({ order: t.order }).eq('id', t.id)
+            )
+        ).then(results => {
+            const errors = results.filter(r => r.error)
+            if (errors.length > 0) console.error('Error persisting task order:', errors[0].error)
+
+            // Allow syncing again after a short buffer
+            setTimeout(() => set({ isSyncing: false }), 1000)
         })
     },
 
@@ -588,6 +598,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     },
 
     subscribeToTasks: () => {
+        let debounceTimer: NodeJS.Timeout
+
         const channel = supabase
             .channel('tasks-realtime')
             .on(
@@ -598,13 +610,20 @@ export const useTaskStore = create<TaskState>((set, get) => ({
                     table: 'tasks'
                 },
                 () => {
-                    // Refetch all to maintain sorting and trash separation correctly
-                    get().fetchTasks()
+                    // Skip updates if we are manually syncing (e.g. dragging)
+                    if (get().isSyncing) return
+
+                    // Debounce fetch calls to prevent UI jumping during batch updates (like reordering)
+                    clearTimeout(debounceTimer)
+                    debounceTimer = setTimeout(() => {
+                        get().fetchTasks()
+                    }, 500)
                 }
             )
             .subscribe()
 
         return () => {
+            clearTimeout(debounceTimer)
             supabase.removeChannel(channel)
         }
     },
@@ -721,20 +740,32 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         }
     },
 
-    updateSubtaskOrder: async (_taskId, subtaskIds) => {
-        const updates = subtaskIds.map((id, index) => ({
-            id,
-            order: index
+
+    reorderSubtasks: async (taskId, newSubtasks) => {
+        // 1. Optimistic update
+        set(state => ({
+            tasks: state.tasks.map(t =>
+                t.id === taskId
+                    ? { ...t, subtasks: newSubtasks }
+                    : t
+            )
         }))
 
-        for (const update of updates) {
-            await supabase
-                .from('subtasks')
-                .update({ order: update.order })
-                .eq('id', update.id)
-        }
-
-        // Refetch to get updated order
-        get().fetchTasks()
+        // 2. Persist to Supabase
+        // Update each subtask's order individually
+        Promise.all(
+            newSubtasks.map((subtask, index) =>
+                supabase
+                    .from('subtasks')
+                    .update({ order: index })
+                    .eq('id', subtask.id)
+            )
+        ).then(results => {
+            const errors = results.filter(r => r.error)
+            if (errors.length > 0) {
+                console.error('Error reordering subtasks:', errors[0].error)
+                // Revert or fetchTasks on error could be added here
+            }
+        })
     }
 }))

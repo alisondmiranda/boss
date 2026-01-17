@@ -23,6 +23,7 @@ interface SettingsState {
     sectors: Sector[]
     userProfile: UserProfile
     sortBy: 'manual' | 'alpha' | 'created'
+    isSyncing: boolean
 
     setGeminiApiKey: (key: string) => void
     clearGeminiApiKey: () => void
@@ -35,7 +36,7 @@ interface SettingsState {
 
     updateUserProfile: (updates: Partial<UserProfile>) => void
 
-    _saveToSupabase: (forceState?: Partial<SettingsState>) => Promise<void>
+    _saveToSupabase: (forceState?: Partial<SettingsState>) => Promise<any>
     fetchSettings: () => Promise<void>
     isConfigured: () => boolean
     subscribeToSettings: () => () => void
@@ -61,16 +62,19 @@ export const useSettingsStore = create<SettingsState>()(
             sectors: DEFAULT_SECTORS,
             userProfile: DEFAULT_PROFILE,
             sortBy: 'manual',
+            isSyncing: false,
 
             setGeminiApiKey: (key) => set({ geminiApiKey: key }),
             clearGeminiApiKey: () => set({ geminiApiKey: null }),
 
             _saveToSupabase: async (forceState?: Partial<SettingsState>) => {
                 const user = (await supabase.auth.getUser()).data.user
-                if (!user) return
+                if (!user) return { error: 'No user' }
 
                 const state = { ...get(), ...forceState }
-                await supabase.from('profiles').upsert({
+                console.log('[DEBUG] _saveToSupabase - saving sectors:', state.sectors?.map((s: any) => s.label))
+                console.log('[DEBUG] _saveToSupabase - saving sortBy:', state.sortBy)
+                const { error } = await supabase.from('profiles').upsert({
                     id: user.id,
                     display_name: state.userProfile.displayName,
                     avatar_type: state.userProfile.avatarType,
@@ -80,6 +84,10 @@ export const useSettingsStore = create<SettingsState>()(
                     sort_by: state.sortBy,
                     updated_at: new Date().toISOString()
                 })
+                if (error) {
+                    console.error('[DEBUG] _saveToSupabase error:', error)
+                }
+                return { error }
             },
 
             addSector: async (sector) => {
@@ -99,8 +107,13 @@ export const useSettingsStore = create<SettingsState>()(
             },
 
             reorderSectors: async (newSectors) => {
-                set({ sectors: newSectors, sortBy: 'manual' })
-                await get()._saveToSupabase({ sectors: newSectors, sortBy: 'manual' })
+                console.log('[DEBUG] reorderSectors called with:', newSectors.map(s => s.label))
+                set({ sectors: newSectors, sortBy: 'manual', isSyncing: true })
+                const result = await get()._saveToSupabase({ sectors: newSectors, sortBy: 'manual' })
+                console.log('[DEBUG] _saveToSupabase result:', result)
+
+                // Allow syncing again after a buffer
+                setTimeout(() => set({ isSyncing: false }), 1000)
             },
 
             setSortBy: async (sort) => {
@@ -125,6 +138,8 @@ export const useSettingsStore = create<SettingsState>()(
                     .single()
 
                 if (data && !error) {
+                    console.log('[DEBUG] fetchSettings - sectors from DB:', data.sectors?.map((s: any) => s.label))
+                    console.log('[DEBUG] fetchSettings - sortBy from DB:', data.sort_by)
                     const updates: any = {}
                     if (data.sectors) updates.sectors = data.sectors
                     if (data.sort_by) updates.sortBy = data.sort_by
@@ -152,6 +167,8 @@ export const useSettingsStore = create<SettingsState>()(
             isConfigured: () => !!get().geminiApiKey,
 
             subscribeToSettings: () => {
+                let debounceTimer: NodeJS.Timeout
+
                 const channel = supabase
                     .channel('settings-realtime')
                     .on(
@@ -162,10 +179,15 @@ export const useSettingsStore = create<SettingsState>()(
                             table: 'profiles'
                         },
                         (payload) => {
+                            if (get().isSyncing) return
+
                             // Only update if it's our own profile
                             supabase.auth.getUser().then(({ data }) => {
                                 if (data.user?.id === payload.new.id) {
-                                    get().fetchSettings()
+                                    clearTimeout(debounceTimer)
+                                    debounceTimer = setTimeout(() => {
+                                        get().fetchSettings()
+                                    }, 500)
                                 }
                             })
                         }
@@ -173,6 +195,7 @@ export const useSettingsStore = create<SettingsState>()(
                     .subscribe()
 
                 return () => {
+                    clearTimeout(debounceTimer)
                     supabase.removeChannel(channel)
                 }
             }
@@ -184,7 +207,7 @@ export const useSettingsStore = create<SettingsState>()(
                 sectors: state.sectors,
                 userProfile: state.userProfile,
                 sortBy: state.sortBy
-            })
+            }) // Don't persist isSyncing
         }
     )
 )

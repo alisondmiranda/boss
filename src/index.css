@@ -118,6 +118,10 @@
   background-color: rgba(var(--md-sys-color-outline), 0.8);
 }
 
+.custom-scrollbar {
+  scrollbar-gutter: stable;
+}
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
