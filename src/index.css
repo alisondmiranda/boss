@@ -22,14 +22,15 @@
   --md-sys-color-on-primary-container: 16 28 56;
   /* Darker Navy */
 
-  /* Secondary - Sky Blue (Used for less prominent actions) */
-  --md-sys-color-secondary: 64 96 138;
-  /* Adjusted darker Sky for text contrast */
+  /* Secondary - Sky Blue (#86ABD4) */
+  --md-sys-color-secondary: 134 171 212;
+  /* #86ABD4 */
   --md-sys-color-on-secondary: 255 255 255;
-  --md-sys-color-secondary-container: 214 229 255;
+  --md-sys-color-secondary-container: 217 232 245;
+  /* Align with Ice Blue for consistency if needed, or keep varied */
   --md-sys-color-on-secondary-container: 14 29 54;
 
-  /* Tertiary - Orange (Accent, Highlights) */
+  /* Tertiary - Orange (#F26101) */
   --md-sys-color-tertiary: 242 97 1;
   /* #F26101 */
   --md-sys-color-on-tertiary: 255 255 255;
@@ -50,9 +51,10 @@
   --md-sys-color-surface: 255 255 255;
   --md-sys-color-on-surface: 26 28 30;
 
-  --md-sys-color-surface-variant: 224 227 235;
-  /* Cool Gray */
-  --md-sys-color-on-surface-variant: 67 71 84;
+  --md-sys-color-surface-variant: 217 232 245;
+  /* Ice Blue #D9E8F5 (as per manifest for containers) */
+  --md-sys-color-on-surface-variant: 48 66 105;
+  /* Navy for text on variant */
 
   --md-sys-color-outline: 116 120 133;
   --md-sys-color-outline-variant: 196 199 209;
@@ -76,26 +78,26 @@
 
   /* Extended FAB - M3 Style */
   .fab-extended {
-    @apply h-14 pl-4 pr-6 rounded-[16px] bg-primary-container text-on-primary-container hover:shadow-3 hover:bg-[rgb(var(--md-sys-color-primary-container)/0.92)] active:scale-95 transition-all duration-200 flex items-center gap-3 font-medium;
+    @apply h-14 pl-4 pr-6 rounded-[24px] bg-primary-container text-on-primary-container hover:shadow-3 hover:bg-[rgb(var(--md-sys-color-primary-container)/0.92)] active:scale-95 transition-all duration-200 flex items-center gap-3 font-medium;
   }
 
   /* Standard Card - Filled */
   .card-filled {
-    @apply bg-surface-variant text-on-surface-variant rounded-[12px] p-4 border-none;
+    @apply bg-surface-variant text-on-surface-variant rounded-2xl p-4 border-none;
   }
 
   /* Standard Card - Outlined */
   .card-outlined {
-    @apply bg-surface text-on-surface rounded-[12px] border border-outline-variant;
+    @apply bg-surface text-on-surface rounded-2xl border border-outline-variant;
   }
 
   /* Standard Card - Elevated */
   .card-elevated {
-    @apply bg-surface text-on-surface rounded-[12px] shadow-1 hover:shadow-2 transition-shadow duration-200;
+    @apply bg-surface text-on-surface rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200;
   }
 
   .input-field {
-    @apply w-full bg-surface-variant text-on-surface-variant rounded-t-[4px] border-b border-on-surface-variant/50 px-4 py-3 focus:border-primary focus:bg-surface-variant/70 outline-none transition-all placeholder:text-on-surface-variant/60;
+    @apply w-full bg-surface-variant text-on-surface-variant rounded-2xl border border-transparent px-4 py-3 focus:border-primary focus:ring-1 focus:ring-primary focus:bg-surface outline-none transition-all placeholder:text-on-surface-variant/60;
   }
 }
 

@@ -518,7 +518,7 @@ export function Dashboard() {
 
                 {/* Sidebar Footer */}
                 <div className="mt-auto px-6 py-6 border-t border-outline-variant/30 bg-surface-variant/5">
-                    <p className="text-[10px] text-on-surface-variant/30 font-bold uppercase tracking-widest pl-1">Boss v1.3.4</p>
+                    <p className="text-[10px] text-on-surface-variant/30 font-bold uppercase tracking-widest pl-1">Boss v1.3.5</p>
                 </div>
             </motion.aside>
 
@@ -734,10 +734,10 @@ export function Dashboard() {
                                                         if (showQuickAddSuccess) setShowQuickAddSuccess(false)
                                                         quickInputRef.current?.focus()
                                                     }}
-                                                    className={`relative z-10 bg-surface rounded-[24px] shadow-sm border flex items-center px-5 py-3.5 overflow-hidden cursor-text whitespace-nowrap
+                                                    className={`relative z-10 bg-surface rounded-2xl shadow-sm border flex items-center px-5 py-3.5 overflow-hidden cursor-text whitespace-nowrap
                                                         ${showQuickAddSuccess
                                                             ? 'border-primary/60 shadow-[0_0_24px_rgba(var(--primary-rgb),0.2)]'
-                                                            : 'border-outline-variant/30 focus-within:border-primary/50 focus-within:bg-surface-variant/10 focus-within:shadow-md'
+                                                            : 'border-outline-variant/30 focus-within:border-primary/50 focus-within:bg-secondary-container/30 focus-within:shadow-md'
                                                         }
                                                     `}
                                                 >
@@ -851,7 +851,7 @@ export function Dashboard() {
                                                     className={`
                                                         absolute inset-0 flex items-center justify-center cursor-pointer overflow-hidden
                                                         ${isSearchOpen
-                                                            ? 'bg-surface border border-primary/50 shadow-md rounded-[24px] !justify-start px-4'
+                                                            ? 'bg-surface border border-primary/50 shadow-md rounded-2xl !justify-start px-4'
                                                             : 'bg-surface-variant/20 hover:bg-surface-variant/40 border border-outline-variant/30 rounded-full'
                                                         }
                                                         transition-colors duration-200
@@ -916,7 +916,7 @@ export function Dashboard() {
 
                                             <button
                                                 onClick={() => setIsTaskFormOpen(true)}
-                                                className="h-[44px] w-[44px] md:w-auto md:px-5 rounded-full bg-primary text-on-primary font-bold shadow-sm hover:shadow-md hover:scale-105 transition-all flex items-center justify-center gap-2"
+                                                className="h-[44px] w-[44px] md:w-auto md:px-5 rounded-3xl bg-tertiary text-on-tertiary font-bold shadow-sm hover:shadow-md hover:scale-105 transition-all flex items-center justify-center gap-2"
                                                 title="Formulário Completo"
                                             >
                                                 <Plus className="w-5 h-5 md:w-4 md:h-4" />
