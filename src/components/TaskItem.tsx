@@ -332,7 +332,7 @@ export function TaskItem({
                 </button>
 
                 {/* Content Section */}
-                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                <div className="flex-1 min-w-0 flex flex-col justify-center pl-1">
                     <div className="flex flex-col">
                         {isEditing ? (
                             <input
@@ -438,12 +438,12 @@ export function TaskItem({
                 </div>
 
                 {/* Sector & Actions Section */}
-                <div className="flex items-center gap-2 shrink-0 h-full">
-                    {/* Sector Badges */}
+                <div className="flex items-center shrink-0 h-full">
+                    {/* Sector Badges - max-width dinâmico com overflow controlado */}
                     <div
                         ref={sectorMenuRefs.setReference}
                         {...getSectorMenuReferenceProps()}
-                        className="hidden sm:flex items-center gap-1.5 mr-1 flex-nowrap max-w-[200px]"
+                        className="hidden sm:flex items-center gap-1 mr-2 flex-nowrap overflow-hidden max-w-[150px] md:max-w-[200px] lg:max-w-[280px]"
                     >
                         {(() => {
                             const distinctSectors = (Array.isArray(task.sector) ? task.sector : (task.sector ? [task.sector] : []))
@@ -472,31 +472,33 @@ export function TaskItem({
                                 )
                             }
 
-                            const MAX_VISIBLE = 2 // Changed to 2 to ensure space
-                            const showAll = allSectors.length <= MAX_VISIBLE
-                            const visibleSectors = showAll ? allSectors : allSectors.slice(0, MAX_VISIBLE)
-                            const remainingCount = allSectors.length - MAX_VISIBLE
+                            // Regra: ≤3 mostra todas, ≥4 mostra 2 + badge "+N"
+                            const showAll = allSectors.length <= 3
+                            const visibleSectors = showAll ? allSectors : allSectors.slice(0, 2)
+                            const remainingCount = allSectors.length - 2
 
                             return (
                                 <>
                                     {visibleSectors.map(({ sectorId, sector }: { sectorId: string; sector: any }) => {
                                         const SectorIcon = ICONS.find(i => i.value === sector.icon)?.icon || Tag
-                                        const displayLabel = sector.label.length > 12
-                                            ? sector.label.substring(0, 12) + '...'
+                                        // Limite de caracteres por etiqueta
+                                        const maxChars = 12
+                                        const displayLabel = sector.label.length > maxChars
+                                            ? sector.label.substring(0, maxChars) + '…'
                                             : sector.label
 
                                         return (
-                                            <div key={`${task.id}-${sectorId}`} className="relative shrink-0">
+                                            <div key={`${task.id}-${sectorId}`} className="shrink-0 min-w-0">
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation()
                                                         setTaskMenuOpen(taskMenuOpen === task.id ? null : task.id)
                                                     }}
-                                                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide flex items-center gap-1 transition-all hover:brightness-95 ${getSectorColorClass(sector.color)}`}
+                                                    className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide flex items-center gap-1 transition-all hover:brightness-95 max-w-full ${getSectorColorClass(sector.color)}`}
                                                     title={sector.label}
                                                 >
                                                     <SectorIcon className="w-3 h-3 opacity-60 shrink-0" />
-                                                    <span className="truncate">{displayLabel}</span>
+                                                    <span className="truncate max-w-[60px] md:max-w-[80px]">{displayLabel}</span>
                                                 </button>
                                             </div>
                                         )
@@ -589,8 +591,8 @@ export function TaskItem({
                         </AnimatePresence>
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all">
+                    {/* Actions - Zona fixa com largura definida e z-index superior */}
+                    <div className="flex items-center gap-1 shrink-0 w-[52px] justify-end relative z-10 bg-surface pl-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all">
                         <button
                             onClick={(e) => {
                                 e.stopPropagation()

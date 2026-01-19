@@ -30,7 +30,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 export function Dashboard() {
-    const { toggleRightSidebar, isRightSidebarOpen } = useUIStore()
+    const { toggleRightSidebar, isRightSidebarOpen, isLeftSidebarExpanded, setLeftSidebarExpanded, fetchUIPreferences, subscribeToUIPreferences } = useUIStore()
     const { signOut, user } = useAuthStore()
     const {
         tasks, trashTasks, fetchTasks, addTask, toggleTask,
@@ -51,7 +51,9 @@ export function Dashboard() {
 
     // Sidebar State
     const [sidebarOpen] = useState(true) // For Mobile Drawer
-    const [isSidebarExpanded, setIsSidebarExpanded] = useState(true) // For Desktop Collapse/Expand
+    // isLeftSidebarExpanded now comes from uiStore
+    const isSidebarExpanded = isLeftSidebarExpanded
+    const setIsSidebarExpanded = setLeftSidebarExpanded
     const [sidebarMode, setSidebarMode] = useState<'nav' | 'chat' | 'trash'>('nav')
     const [showDone, setShowDone] = useState(false)
     const [menuOpen, setMenuOpen] = useState(false)
@@ -124,6 +126,9 @@ export function Dashboard() {
 
     useEffect(() => {
         fetchTasks()
+        fetchUIPreferences()
+        const unsubscribe = subscribeToUIPreferences()
+        return () => unsubscribe()
     }, [])
 
     useEffect(() => {
@@ -372,14 +377,23 @@ export function Dashboard() {
             >
                 {/* Header / App Name */}
                 <div className="h-20 flex items-center shrink-0 border-b border-transparent relative">
-                    <div
+                    <a
+                        href="https://boss-assistant.netlify.app/"
                         className="w-[72px] h-20 shrink-0 flex items-center justify-center cursor-pointer"
-                        onClick={() => !isSidebarExpanded && setIsSidebarExpanded(true)}
+                        onClick={(e) => {
+                            // Só interfere se for clique esquerdo sem teclas modificadoras
+                            if (e.button === 0 && !e.ctrlKey && !e.metaKey) {
+                                if (!isSidebarExpanded) {
+                                    e.preventDefault()
+                                    setIsSidebarExpanded(true)
+                                }
+                            }
+                        }}
                     >
                         <div className="w-10 h-10 flex items-center justify-center shrink-0">
                             <img src={crownLogo} className="w-8 h-8 text-on-primary-container" alt="Boss" />
                         </div>
-                    </div>
+                    </a>
 
                     <motion.div
                         initial={false}
@@ -390,9 +404,9 @@ export function Dashboard() {
                         }}
                         className="overflow-hidden whitespace-nowrap pr-4"
                     >
-                        <span className="font-bold text-xl leading-tight text-on-surface tracking-tight">
+                        <a href="https://boss-assistant.netlify.app/" className="font-bold text-xl leading-tight text-on-surface tracking-tight hover:text-primary transition-colors">
                             Boss
-                        </span>
+                        </a>
                     </motion.div>
 
                     {isSidebarExpanded && (
@@ -726,12 +740,12 @@ export function Dashboard() {
                     {/* VIEW: NAV (Tasks & Done Unified) */}
                     {
                         sidebarMode === 'nav' && (
-                            <div className="max-w-4xl mx-auto space-y-6 pt-4">
+                            <div className="max-w-4xl mx-auto space-y-2 pt-2">
 
                                 {/* Quick Filters / Navigation Buttons */}
                                 {/* Unified Toolbar (Only in Nav) */}
                                 {sidebarMode === 'nav' && (
-                                    <div className="flex flex-col md:flex-row gap-4 mb-6 sticky top-0 bg-background z-30 pt-2 pb-2 items-center">
+                                    <div className="flex flex-col md:flex-row gap-2 mb-2 sticky top-0 bg-background z-30 py-1 items-center">
 
                                         {/* INTERACTIVE ZONE: Quick Task + Expanding Search */}
                                         <div className="flex-1 flex items-center gap-0 relative w-full">
@@ -752,7 +766,7 @@ export function Dashboard() {
                                                         if (showQuickAddSuccess) setShowQuickAddSuccess(false)
                                                         quickInputRef.current?.focus()
                                                     }}
-                                                    className={`relative z-10 bg-surface rounded-2xl shadow-sm border flex items-center px-5 py-3.5 overflow-hidden cursor-text whitespace-nowrap
+                                                    className={`relative z-10 bg-surface rounded-2xl shadow-sm border flex items-center px-4 py-2 overflow-hidden cursor-text whitespace-nowrap
                                                         ${showQuickAddSuccess
                                                             ? 'border-primary/60 shadow-[0_0_24px_rgba(var(--primary-rgb),0.2)]'
                                                             : 'border-outline-variant/30 focus-within:border-primary/50 focus-within:bg-secondary-container/30 focus-within:shadow-md'
@@ -857,10 +871,10 @@ export function Dashboard() {
                                                 ref={searchContainerRef}
                                                 layout
                                                 initial={false}
-                                                animate={{ flex: isSearchOpen ? '1 1 50%' : '0 0 56px' }}
-                                                style={{ marginLeft: '12px' }}
+                                                animate={{ flex: isSearchOpen ? '1 1 50%' : '0 0 40px' }}
+                                                style={{ marginLeft: '8px' }}
                                                 transition={{ type: "tween", ease: [0.25, 0.1, 0.25, 1], duration: 0.35 }}
-                                                className="relative h-[56px] z-10"
+                                                className="relative h-10 z-10"
                                             >
                                                 {/* Container that morphs - Always centered content */}
                                                 <motion.div
@@ -934,7 +948,7 @@ export function Dashboard() {
 
                                             <button
                                                 onClick={() => setIsTaskFormOpen(true)}
-                                                className="h-[44px] w-[44px] md:w-auto md:px-5 rounded-3xl bg-tertiary text-on-tertiary font-bold shadow-sm hover:shadow-md hover:scale-105 transition-all flex items-center justify-center gap-2"
+                                                className="h-10 w-10 md:w-auto md:px-5 rounded-3xl bg-tertiary text-on-tertiary font-bold shadow-sm hover:shadow-md hover:scale-105 transition-all flex items-center justify-center gap-2"
                                                 title="Formulário Completo"
                                             >
                                                 <Plus className="w-5 h-5 md:w-4 md:h-4" />
