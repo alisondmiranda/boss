@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Tag, Check, ListTodo, Repeat, Clock, AlignLeft, ChevronDown } from 'lucide-react'
+import { X, Tag, Check, ListTodo, Repeat, Clock, AlignLeft, ChevronDown, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useFloating, autoUpdate, offset, flip, shift, useDismiss, useInteractions, FloatingPortal } from '@floating-ui/react'
 import { DatePicker } from './DatePicker'
 import { RecurrencePicker, RecurrenceRule } from './RecurrencePicker'
 import { Sector } from '../store/settingsStore'
@@ -69,9 +70,25 @@ export function TaskFormModal({
     const [isSectorDropdownOpen, setIsSectorDropdownOpen] = useState(false)
 
     const datePickerTriggerRef = useRef<HTMLButtonElement>(null)
+    const recurrenceTriggerRef = useRef<HTMLButtonElement>(null)
     const titleInputRef = useRef<HTMLInputElement>(null)
     const subtaskInputRef = useRef<HTMLInputElement>(null)
     const hasInitializedRef = useRef(false)
+
+    const { refs: sectorRefs, floatingStyles: sectorStyles, context: sectorContext } = useFloating({
+        open: isSectorDropdownOpen,
+        onOpenChange: setIsSectorDropdownOpen,
+        whileElementsMounted: autoUpdate,
+        middleware: [
+            offset(4),
+            flip(),
+            shift()
+        ],
+        placement: 'bottom-start'
+    })
+
+    const sectorDismiss = useDismiss(sectorContext)
+    const { getFloatingProps: getSectorFloatingProps, getReferenceProps: getSectorReferenceProps } = useInteractions([sectorDismiss])
 
     // Reset initialization flag when modal closes
     useEffect(() => {
@@ -268,6 +285,7 @@ export function TaskFormModal({
 
                                 {/* Recurrence Pill */}
                                 <button
+                                    ref={recurrenceTriggerRef}
                                     type="button"
                                     onClick={() => setIsRecurrencePickerOpen(true)}
                                     className="px-3 py-1.5 rounded bg-surface-variant/30 hover:bg-surface-variant text-sm font-medium text-on-surface transition-colors flex items-center gap-2"
@@ -370,8 +388,10 @@ export function TaskFormModal({
                             <div className="w-5 flex justify-center text-on-surface-variant">
                                 <Tag className="w-5 h-5" />
                             </div>
-                            <div className="relative">
+                            <div>
                                 <button
+                                    ref={sectorRefs.setReference}
+                                    {...getSectorReferenceProps()}
                                     type="button"
                                     onClick={() => setIsSectorDropdownOpen(!isSectorDropdownOpen)}
                                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-variant/30 hover:bg-surface-variant/50 text-sm font-medium text-on-surface transition-all border border-transparent hover:border-outline-variant/30"
@@ -408,71 +428,90 @@ export function TaskFormModal({
 
                                 <AnimatePresence>
                                     {isSectorDropdownOpen && (
-                                        <>
-                                            <div className="fixed inset-0 z-40" onClick={() => setIsSectorDropdownOpen(false)} />
-                                            <motion.div
-                                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                                                className="absolute bottom-full left-0 mb-2 w-56 bg-surface rounded-lg shadow-5 border border-outline-variant flex flex-col py-1 z-[60] overflow-hidden"
+                                        <FloatingPortal>
+                                            <div
+                                                ref={sectorRefs.setFloating}
+                                                style={sectorStyles}
+                                                {...getSectorFloatingProps()}
+                                                className="z-[90]"
                                             >
-                                                {sectors
-                                                    .filter(s => {
-                                                        // Hide 'Geral' if any other sector is selected
-                                                        const isGeral = s.label.toLowerCase() === 'geral' || s.label.toLowerCase() === 'general'
-                                                        const hasOtherSelected = selectedSectors.some(id => {
-                                                            const sec = sectors.find(sec => sec.id === id)
-                                                            return sec && sec.label.toLowerCase() !== 'geral' && sec.label.toLowerCase() !== 'general'
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                    className="w-56 bg-surface rounded-lg shadow-5 border border-outline-variant flex flex-col py-1 z-[60] overflow-hidden"
+                                                >
+                                                    {sectors
+                                                        .filter(s => {
+                                                            // Hide 'Geral' if any other sector is selected
+                                                            const isGeral = s.label.toLowerCase() === 'geral' || s.label.toLowerCase() === 'general'
+                                                            const hasOtherSelected = selectedSectors.some(id => {
+                                                                const sec = sectors.find(sec => sec.id === id)
+                                                                return sec && sec.label.toLowerCase() !== 'geral' && sec.label.toLowerCase() !== 'general'
+                                                            })
+                                                            if (isGeral && hasOtherSelected) return false
+                                                            return true
                                                         })
-                                                        if (isGeral && hasOtherSelected) return false
-                                                        return true
-                                                    })
-                                                    .map(s => {
-                                                        const isSelected = selectedSectors.includes(s.id)
-                                                        const colorClass = getSectorColorClass(s.color)
-                                                        return (
-                                                            <button
-                                                                key={s.id}
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation()
-                                                                    const isGeral = s.label.toLowerCase() === 'geral' || s.label.toLowerCase() === 'general'
-                                                                    if (isGeral) {
-                                                                        // Selecting Geral clears other selections
-                                                                        setSelectedSectors([s.id])
-                                                                    } else {
-                                                                        // Selecting other sector removes Geral if present
-                                                                        setSelectedSectors(prev => {
-                                                                            const withoutGeral = prev.filter(id => {
-                                                                                const sec = sectors.find(sec => sec.id === id)
-                                                                                return sec && sec.label.toLowerCase() !== 'geral' && sec.label.toLowerCase() !== 'general'
+                                                        .map(s => {
+                                                            const isSelected = selectedSectors.includes(s.id)
+                                                            const colorClass = getSectorColorClass(s.color)
+                                                            return (
+                                                                <button
+                                                                    key={s.id}
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation()
+                                                                        const isGeral = s.label.toLowerCase() === 'geral' || s.label.toLowerCase() === 'general'
+                                                                        if (isGeral) {
+                                                                            // Selecting Geral clears other selections
+                                                                            setSelectedSectors([s.id])
+                                                                        } else {
+                                                                            // Selecting other sector removes Geral if present
+                                                                            setSelectedSectors(prev => {
+                                                                                const withoutGeral = prev.filter(id => {
+                                                                                    const sec = sectors.find(sec => sec.id === id)
+                                                                                    return sec && sec.label.toLowerCase() !== 'geral' && sec.label.toLowerCase() !== 'general'
+                                                                                })
+                                                                                if (withoutGeral.includes(s.id)) {
+                                                                                    // Deselecting - if becomes empty, Geral will be fallback
+                                                                                    return withoutGeral.filter(id => id !== s.id)
+                                                                                } else {
+                                                                                    return [...withoutGeral, s.id]
+                                                                                }
                                                                             })
-                                                                            if (withoutGeral.includes(s.id)) {
-                                                                                // Deselecting - if becomes empty, Geral will be fallback
-                                                                                return withoutGeral.filter(id => id !== s.id)
-                                                                            } else {
-                                                                                return [...withoutGeral, s.id]
-                                                                            }
-                                                                        })
-                                                                    }
-                                                                    // Kept open for multi-selection
-                                                                }}
-                                                                className="px-4 py-2.5 text-sm text-left flex items-center gap-3 hover:bg-surface-variant/50 transition-colors w-full text-on-surface"
-                                                            >
-                                                                {(() => {
-                                                                    const IconComp = ICONS.find(i => i.value === s.icon)?.icon || Tag
-                                                                    const textColor = colorClass.split(' ')[1]
-                                                                    return <IconComp className={`w-4 h-4 ${textColor}`} />
-                                                                })()}
-                                                                <span className={`flex-1 ${isSelected ? 'font-medium' : ''}`}>
-                                                                    {s.label}
-                                                                </span>
-                                                                {isSelected && <Check className="w-3 h-3 text-primary" />}
-                                                            </button>
-                                                        )
-                                                    })}
-                                            </motion.div>
-                                        </>
+                                                                        }
+                                                                        // Kept open for multi-selection
+                                                                    }}
+                                                                    className="px-4 py-2.5 text-sm text-left flex items-center gap-3 hover:bg-surface-variant/50 transition-colors w-full text-on-surface"
+                                                                >
+                                                                    {(() => {
+                                                                        const IconComp = ICONS.find(i => i.value === s.icon)?.icon || Tag
+                                                                        const textColor = colorClass.split(' ')[1]
+                                                                        return <IconComp className={`w-4 h-4 ${textColor}`} />
+                                                                    })()}
+                                                                    <span className={`flex-1 ${isSelected ? 'font-medium' : ''}`}>
+                                                                        {s.label}
+                                                                    </span>
+                                                                    {isSelected && <Check className="w-3 h-3 text-primary" />}
+                                                                </button>
+                                                            )
+                                                        })}
+                                                    <div className="pt-2 mt-1 border-t border-outline-variant/30 px-2 pb-1">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                setIsSectorDropdownOpen(false)
+                                                                window.dispatchEvent(new CustomEvent('open-sectors-settings'))
+                                                            }}
+                                                            className="w-full px-2 py-1.5 text-xs font-bold text-primary hover:bg-primary/10 rounded-lg flex items-center justify-center gap-2 transition-colors uppercase tracking-wide"
+                                                        >
+                                                            <Plus className="w-3 h-3" />
+                                                            Nova Etiqueta
+                                                        </button>
+                                                    </div>
+                                                </motion.div>
+                                            </div>
+                                        </FloatingPortal>
                                     )}
                                 </AnimatePresence>
                             </div>
@@ -504,6 +543,7 @@ export function TaskFormModal({
                         onChange={setRecurrence}
                         isOpen={isRecurrencePickerOpen}
                         onClose={() => setIsRecurrencePickerOpen(false)}
+                        triggerRef={recurrenceTriggerRef}
                     />
                 </motion.div>
             </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, isSameDay, addMonths, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 
 interface StandardCalendarProps {
     className?: string
@@ -9,6 +9,7 @@ interface StandardCalendarProps {
     onDateSelect: (date: Date) => void
     highlightToday?: boolean
     showControls?: boolean
+    enableTime?: boolean
 }
 
 export function StandardCalendar({
@@ -16,7 +17,8 @@ export function StandardCalendar({
     selectedDate,
     onDateSelect,
     highlightToday = true,
-    showControls = true
+    showControls = true,
+    enableTime = false
 }: StandardCalendarProps) {
     const today = new Date()
     const [currentMonth, setCurrentMonth] = useState(selectedDate || today)
@@ -39,6 +41,28 @@ export function StandardCalendar({
         onDateSelect(now)
     }
 
+    const [timeValue, setTimeValue] = useState(selectedDate ? format(selectedDate, 'HH:mm') : '09:00')
+
+    const handleDateClick = (day: Date) => {
+        let newDate = day
+        if (enableTime) {
+            const [hours, minutes] = timeValue.split(':').map(Number)
+            newDate.setHours(hours, minutes)
+        }
+        onDateSelect(newDate)
+    }
+
+    const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newTime = e.target.value
+        setTimeValue(newTime)
+        if (selectedDate) {
+            const [hours, minutes] = newTime.split(':').map(Number)
+            const newDate = new Date(selectedDate)
+            newDate.setHours(hours, minutes)
+            onDateSelect(newDate)
+        }
+    }
+
     return (
         <div className={`p-4 bg-surface rounded-xl border border-outline-variant/30 shadow-sm ${className}`}>
             {/* Header */}
@@ -50,7 +74,7 @@ export function StandardCalendar({
                     <div className="flex items-center gap-1">
                         <button
                             onClick={goToToday}
-                            className="px-2 py-1 text-[10px] font-bold text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                            className="px-2 py-1 text-[10px] font-bold text-primary hover:bg-primary/10 rounded-lg transition-colors capitalize"
                             title="Ir para hoje"
                         >
                             Hoje
@@ -90,7 +114,7 @@ export function StandardCalendar({
                     return (
                         <button
                             key={day.toString()}
-                            onClick={() => onDateSelect(day)}
+                            onClick={() => handleDateClick(day)}
                             className={`
                                 h-8 w-8 mx-auto flex items-center justify-center text-xs font-medium rounded-lg transition-all
                                 ${!isCurrentMonth ? 'text-on-surface-variant/30' : 'text-on-surface'}
@@ -103,6 +127,22 @@ export function StandardCalendar({
                     )
                 })}
             </div>
+
+            {/* Time Picker */}
+            {enableTime && (
+                <div className="mt-4 pt-3 border-t border-outline-variant/30 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-on-surface-variant text-sm">
+                        <Clock className="w-4 h-4" />
+                        <span className="font-medium">Horário</span>
+                    </div>
+                    <input
+                        type="time"
+                        value={timeValue}
+                        onChange={handleTimeChange}
+                        className="bg-surface-variant/30 text-on-surface text-sm font-bold rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-primary/50 transition-all border border-transparent hover:border-outline-variant/50"
+                    />
+                </div>
+            )}
         </div>
     )
 }

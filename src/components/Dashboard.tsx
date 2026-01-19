@@ -2,11 +2,11 @@ import { useEffect, useState, useRef, useMemo } from 'react'
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
 import {
     Plus, Trash2, LogOut, Settings, Send, Loader2, Calendar, ListTodo, Ghost, Tag,
-    PanelLeftClose, MessageCircle, PanelRightOpen, Search, X, ChevronDown,
+    PanelLeftClose, PanelRightOpen, Search, X, ChevronDown,
     ChevronRight, MoreVertical, Check
 } from 'lucide-react'
 import crownLogo from '../assets/crown.svg'
-import { AVATAR_ICONS, ICONS } from '../constants/icons.tsx'
+import { AVATAR_ICONS, ICONS, AssistantIcon } from '../constants/icons.tsx'
 import { useAuthStore } from '../store/authStore'
 import { useTaskStore, Task } from '../store/taskStore'
 import { useSettingsStore } from '../store/settingsStore'
@@ -96,10 +96,23 @@ export function Dashboard() {
         }
     }, [isSearchOpen])
 
-    const openSettings = (tab: 'api' | 'sectors' | 'profile' = 'api') => {
+    const [settingsOpenCreation, setSettingsOpenCreation] = useState(false)
+
+    const openSettings = (tab: 'api' | 'sectors' | 'profile' = 'api', openCreation = false) => {
         setSettingsTab(tab)
+        setSettingsOpenCreation(openCreation)
         setShowSettings(true)
+        // Reset creating state after opening (SettingsModal handles it on mount/update)
+        // Actually, we should keep it true while open if we want it to work on mount,
+        // but since SettingsModal uses it in useEffect dependent on isOpen, it's fine.
     }
+
+    // Listen for custom event to open sectors settings
+    useEffect(() => {
+        const handleOpenSectors = () => openSettings('sectors', true)
+        window.addEventListener('open-sectors-settings', handleOpenSectors)
+        return () => window.removeEventListener('open-sectors-settings', handleOpenSectors)
+    }, [])
 
     // Chat State
     const [chatInput, setChatInput] = useState('')
@@ -340,7 +353,12 @@ export function Dashboard() {
     return (
         <div className="flex h-screen overflow-hidden bg-background font-sans">
             <ToastContainer />
-            <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} initialTab={settingsTab} />
+            <SettingsModal
+                isOpen={showSettings}
+                onClose={() => { setShowSettings(false); setSettingsOpenCreation(false) }}
+                initialTab={settingsTab}
+                initialOpenCreation={settingsOpenCreation}
+            />
 
             {/* LEFT: Sidebar (Tasks Style) */}
             <motion.aside
@@ -440,7 +458,7 @@ export function Dashboard() {
                             )}
 
                             <div className="w-[72px] h-12 shrink-0 flex items-center justify-center">
-                                <MessageCircle className="w-5 h-5" />
+                                <AssistantIcon className="w-5 h-5" />
                             </div>
 
                             <motion.span
@@ -453,21 +471,21 @@ export function Dashboard() {
                         </button>
                     </div>
 
-                    {/* Sectors List */}
-                    <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar">
+                    {/* Sectors List (Tags) */}
+                    <div className="flex-1 overflow-y-auto space-y-0.5 custom-scrollbar mt-0">
                         <motion.div
                             initial={false}
                             animate={{ opacity: isSidebarExpanded ? 1 : 0, height: isSidebarExpanded ? 'auto' : 0 }}
-                            className="px-6 pb-2 pt-4 flex items-center justify-between group overflow-hidden"
+                            className="px-6 pb-1 pt-3 flex items-center justify-between group overflow-hidden"
                         >
-                            <span className="text-xs font-bold text-on-surface-variant/70 uppercase tracking-[0.1em]">Listas</span>
+                            <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-[0.1em]">Etiquetas</span>
                             <div className="flex items-center gap-0.5">
                                 <button
                                     onClick={() => openSettings('sectors')}
                                     className="p-1 hover:bg-surface-variant/50 rounded-full text-on-surface-variant/50 hover:text-primary transition-colors"
-                                    title="Nova Lista"
+                                    title="Nova Etiqueta"
                                 >
-                                    <Plus className="w-3.5 h-3.5" />
+                                    <Plus className="w-3 h-3" />
                                 </button>
                             </div>
                         </motion.div>
@@ -479,24 +497,24 @@ export function Dashboard() {
                                 <button
                                     key={s.id}
                                     onClick={() => { setSidebarMode('nav'); toggleFilter(s.id); }}
-                                    className={`w-full flex items-center rounded-r-[16px] text-sm font-medium transition-colors relative group ${isSelected
+                                    className={`w-full flex items-center rounded-r-[14px] text-[13px] font-medium transition-colors relative group py-0.5 ${isSelected
                                         ? 'bg-primary/5 text-primary font-semibold'
                                         : 'text-on-surface hover:bg-surface-variant/30'
                                         }`}
                                     title={s.label}
                                 >
                                     {isSelected && (
-                                        <div className="absolute left-0 top-2 bottom-2 w-1 bg-primary rounded-r-full" />
+                                        <div className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-primary rounded-r-full" />
                                     )}
 
-                                    <div className="w-[72px] h-12 shrink-0 flex items-center justify-center">
-                                        <SectorIcon className={`w-5 h-5 ${isSelected ? 'text-primary' : 'text-on-surface-variant'}`} />
+                                    <div className="w-[72px] h-9 shrink-0 flex items-center justify-center">
+                                        <SectorIcon className={`w-4 h-4 ${isSelected ? 'text-primary' : 'text-on-surface-variant/80'}`} />
                                     </div>
 
                                     <motion.span
                                         initial={false}
                                         animate={{ opacity: isSidebarExpanded ? 1 : 0, x: isSidebarExpanded ? 0 : -10 }}
-                                        className="truncate flex-1 text-left overflow-hidden whitespace-nowrap"
+                                        className="truncate flex-1 text-left overflow-hidden whitespace-nowrap leading-none"
                                     >
                                         {s.label}
                                     </motion.span>
@@ -507,7 +525,7 @@ export function Dashboard() {
                                             animate={{ opacity: 1, scale: 1 }}
                                             className="mr-5"
                                         >
-                                            <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary-rgb),0.6)]" />
+                                            <div className="w-1 h-1 rounded-full bg-primary shadow-[0_0_6px_rgba(var(--primary-rgb),0.6)]" />
                                         </motion.div>
                                     )}
                                 </button>
@@ -518,7 +536,7 @@ export function Dashboard() {
 
                 {/* Sidebar Footer */}
                 <div className="mt-auto px-6 py-6 border-t border-outline-variant/30 bg-surface-variant/5">
-                    <p className="text-[10px] text-on-surface-variant/30 font-bold uppercase tracking-widest pl-1">Boss v1.3.5</p>
+                    <p className="text-[10px] text-on-surface-variant/30 font-bold uppercase tracking-widest pl-1">Boss v1.3.6</p>
                 </div>
             </motion.aside>
 

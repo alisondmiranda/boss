@@ -15,6 +15,7 @@ interface SettingsModalProps {
     isOpen: boolean
     onClose: () => void
     initialTab?: 'api' | 'sectors' | 'profile'
+    initialOpenCreation?: boolean
 }
 
 // Reorderable Item Component
@@ -79,7 +80,7 @@ function SectorItem({ sector, sortBy, editingId, onEdit, onRemove }: SectorItemP
     )
 }
 
-export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: SettingsModalProps) {
+export function SettingsModal({ isOpen, onClose, initialTab = 'profile', initialOpenCreation = false }: SettingsModalProps) {
     const {
         geminiApiKey, setGeminiApiKey,
         sectors, addSector, updateSector, removeSector, reorderSectors,
@@ -129,8 +130,12 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
             setAvatarType(safeProfile.avatarType)
             setSelectedIcon(safeProfile.selectedIcon || 'crown')
             setCustomAvatarUrl(safeProfile.customAvatarUrl || '')
+            if (initialTab === 'sectors' && initialOpenCreation) {
+                resetForm()
+                setIsSectorFormOpen(true)
+            }
         }
-    }, [isOpen, initialTab, safeProfile])
+    }, [isOpen, initialTab, safeProfile, initialOpenCreation])
 
     // Reset form when tab changes
     useEffect(() => {
@@ -176,13 +181,13 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                 icon: sectorIcon
 
             })
-            addToast(`Lista "${sectorName}" atualizada!`, 'success')
+            addToast(`Etiqueta "${sectorName}" atualizada!`, 'success')
         } else {
             // Create New
             const newId = sectorName.toLowerCase().replace(/\s+/g, '-')
             // Simple check for duplicates
             if (sectors.some(s => s.id === newId)) {
-                addToast('Já existe uma lista com este ID (nome).', 'error')
+                addToast('Já existe uma etiqueta com este ID (nome).', 'error')
                 return
             }
 
@@ -192,7 +197,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                 color: sectorColor,
                 icon: sectorIcon
             })
-            addToast(`Lista "${sectorName}" criada!`, 'success')
+            addToast(`Etiqueta "${sectorName}" criada!`, 'success')
         }
         resetForm()
     }
@@ -246,7 +251,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                 onClick={() => setActiveTab('sectors')}
                                 className={`flex-1 py-4 text-sm font-medium transition-all border-b-2 ${activeTab === 'sectors' ? 'text-primary border-primary' : 'text-on-surface-variant border-transparent hover:text-on-surface hover:bg-surface-variant/30'}`}
                             >
-                                Listas
+                                Etiquetas
                             </button>
                             <button
                                 onClick={() => setActiveTab('api')}
@@ -410,13 +415,13 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                             {activeTab === 'sectors' && (
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between px-1">
-                                        <h3 className="text-sm font-bold text-on-surface">Minhas Listas</h3>
+                                        <h3 className="text-sm font-bold text-on-surface">Minhas Etiquetas</h3>
                                         <button
                                             onClick={() => { resetForm(); setIsSectorFormOpen(true); }}
                                             className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-bold hover:bg-primary/20 transition-all flex items-center gap-1"
                                         >
                                             <Plus className="w-3 h-3" strokeWidth={3} />
-                                            NOVA LISTA
+                                            NOVA ETIQUETA
                                         </button>
                                     </div>
 
@@ -462,7 +467,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                                         exit={{ opacity: 0 }}
                                                         className="text-center py-10 border-2 border-dashed border-outline-variant/30 rounded-[20px]"
                                                     >
-                                                        <p className="text-sm text-on-surface-variant font-medium">Nenhuma lista criada.</p>
+                                                        <p className="text-sm text-on-surface-variant font-medium">Nenhuma etiqueta criada.</p>
                                                         <button
                                                             onClick={() => setIsSectorFormOpen(true)}
                                                             className="text-primary text-xs font-bold mt-2 hover:underline"
@@ -479,7 +484,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                                             editingId={editingId}
                                                             onEdit={handleEditClick}
                                                             onRemove={(id, label) => {
-                                                                if (confirm(`Excluir a lista "${label}"?`)) {
+                                                                if (confirm(`Excluir a etiqueta "${label}"?`)) {
                                                                     removeSector(id)
                                                                 }
                                                             }}
@@ -510,7 +515,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                                     <form onSubmit={handleSaveSector} className="p-6 space-y-6">
                                                         <div className="flex justify-between items-center">
                                                             <h3 className="text-lg font-bold text-on-surface">
-                                                                {editingId ? 'Editar Lista' : 'Nova Lista'}
+                                                                {editingId ? 'Editar Etiqueta' : 'Nova Etiqueta'}
                                                             </h3>
                                                             <button
                                                                 type="button"
@@ -523,7 +528,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
 
                                                         <div className="space-y-4">
                                                             <div>
-                                                                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">Nome da Lista</label>
+                                                                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">Nome da Etiqueta</label>
                                                                 <input
                                                                     type="text"
                                                                     autoFocus
@@ -599,7 +604,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile' }: Setti
                                                                 disabled={!sectorName}
                                                                 className="w-full py-4 bg-primary text-on-primary rounded-[16px] font-bold shadow-2 hover:shadow-3 active:scale-[0.98] transition-all disabled:opacity-50"
                                                             >
-                                                                {editingId ? 'Salvar Edição' : 'Criar Lista'}
+                                                                {editingId ? 'Salvar Edição' : 'Criar Etiqueta'}
                                                             </button>
                                                         </div>
                                                     </form>
