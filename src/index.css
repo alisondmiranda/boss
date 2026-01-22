@@ -14,50 +14,53 @@
   */
 
   /* Primary - Navy */
-  --md-sys-color-primary: 48 66 105;
-  /* #304269 */
+  --md-sys-color-primary: 35 55 95;
+  /* Darker #23375F */
   --md-sys-color-on-primary: 255 255 255;
-  --md-sys-color-primary-container: 217 232 245;
-  /* Ice #D9E8F5 */
-  --md-sys-color-on-primary-container: 16 28 56;
-  /* Darker Navy */
+  --md-sys-color-primary-container: 210 230 245;
+  /* Slightly more saturated Ice Blue */
+  --md-sys-color-on-primary-container: 10 20 45;
+  /* Near black navy */
 
   /* Secondary - Sky Blue (#86ABD4) */
-  --md-sys-color-secondary: 134 171 212;
-  /* #86ABD4 */
+  --md-sys-color-secondary: 100 135 180;
+  /* Darker Sky Blue */
   --md-sys-color-on-secondary: 255 255 255;
-  --md-sys-color-secondary-container: 217 232 245;
-  /* Align with Ice Blue for consistency if needed, or keep varied */
-  --md-sys-color-on-secondary-container: 14 29 54;
+  --md-sys-color-secondary-container: 210 230 245;
+  --md-sys-color-on-secondary-container: 10 20 45;
 
   /* Tertiary - Orange (#F26101) */
-  --md-sys-color-tertiary: 242 97 1;
-  /* #F26101 */
+  --md-sys-color-tertiary: 210 80 0;
+  /* More intense Orange */
   --md-sys-color-on-tertiary: 255 255 255;
-  --md-sys-color-tertiary-container: 255 219 204;
-  --md-sys-color-on-tertiary-container: 56 19 0;
+  --md-sys-color-tertiary-container: 255 210 190;
+  --md-sys-color-on-tertiary-container: 45 15 0;
 
   /* Error */
-  --md-sys-color-error: 186 26 26;
+  --md-sys-color-error: 170 20 20;
   --md-sys-color-on-error: 255 255 255;
-  --md-sys-color-error-container: 255 218 214;
-  --md-sys-color-on-error-container: 65 0 2;
+  --md-sys-color-error-container: 255 210 210;
+  --md-sys-color-on-error-container: 50 0 0;
 
   /* Background & Surface */
-  --md-sys-color-background: 248 250 252;
-  /* Slate 50 */
-  --md-sys-color-on-background: 26 28 30;
+  --md-sys-color-background: 245 247 250;
+  /* Slightly cooler/sturdier background */
+  --md-sys-color-on-background: 15 17 20;
+  /* High contrast */
 
   --md-sys-color-surface: 255 255 255;
-  --md-sys-color-on-surface: 26 28 30;
+  --md-sys-color-on-surface: 15 17 20;
+  /* High contrast */
 
-  --md-sys-color-surface-variant: 217 232 245;
-  /* Ice Blue #D9E8F5 (as per manifest for containers) */
-  --md-sys-color-on-surface-variant: 48 66 105;
-  /* Navy for text on variant */
+  --md-sys-color-surface-variant: 210 225 240;
+  /* Ice Blue #D2E1F0 */
+  --md-sys-color-on-surface-variant: 35 48 80;
+  /* Much darker Navy for secondary text */
 
-  --md-sys-color-outline: 116 120 133;
-  --md-sys-color-outline-variant: 196 199 209;
+  --md-sys-color-outline: 85 95 110;
+  /* More defined outlines */
+  --md-sys-color-outline-variant: 165 175 195;
+  /* More visible separators */
 
   /* Elevation Shadows */
   --md-sys-elevation-1: 0px 1px 3px 1px rgba(0, 0, 0, 0.15), 0px 1px 2px 0px rgba(0, 0, 0, 0.3);

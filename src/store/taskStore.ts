@@ -61,13 +61,6 @@ interface TaskState {
     subscribeToTasks: () => () => void
 }
 
-const isSame = (a: any, b: any): boolean => {
-    const keys = ['title', 'status', 'sector', 'due_at', 'details', 'order', 'trash_date']
-    for (const key of keys) {
-        if (a[key] !== b[key]) return false
-    }
-    return true
-}
 
 export const useTaskStore = create<TaskState>((set, get) => ({
     tasks: [],
@@ -382,28 +375,42 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     },
 
     reorderTasks: async (newTasks) => {
-        const oldTasks = get().tasks
-        set({ tasks: newTasks })
+        const { tasks, syncingIds } = get()
 
-        const updates = newTasks
-            .map((task, index) => ({ id: task.id, order: index }))
-            .filter((update) => {
-                const oldTask = oldTasks.find(t => t.id === update.id)
-                return !oldTask || oldTask.order !== update.order
-            })
+        // Mark as syncing
+        const reorderingIds = newTasks.map(t => t.id)
+        reorderingIds.forEach(id => syncingIds.add(id))
+        set({ syncingIds: new Set(syncingIds), isSyncing: true })
 
-        if (updates.length === 0) return
+        // Update order for reordered tasks
+        const reorderedWithOrder = newTasks.map((t, idx) => ({ ...t, order: idx }))
 
+        // Keep other tasks (done, filtered out, etc) with updated orders
+        const reorderedIds = new Set(newTasks.map(t => t.id))
+        const otherTasks = tasks.filter(t => !reorderedIds.has(t.id))
+        const otherWithOrder = otherTasks.map((t, idx) => ({ ...t, order: newTasks.length + idx }))
+
+        const mergedTasks = [...reorderedWithOrder, ...otherWithOrder]
+        set({ tasks: mergedTasks })
+
+        // Persist to database - update each task's order
         try {
-            const { error } = await supabase.from('tasks').upsert(
-                updates.map(u => ({ id: u.id, order: u.order })),
-                { onConflict: 'id' }
+            const updatePromises = newTasks.map((task, index) =>
+                supabase.from('tasks').update({ order: index }).eq('id', task.id)
             )
-            if (error) throw error
+            await Promise.all(updatePromises)
         } catch (error) {
             console.error('Error reordering tasks:', error)
+            await get().fetchTasks()
+        } finally {
+            setTimeout(() => {
+                const { syncingIds } = get()
+                reorderingIds.forEach(id => syncingIds.delete(id))
+                set({ syncingIds: new Set(syncingIds), isSyncing: false })
+            }, 1000)
         }
     },
+
 
     addSubtask: async (taskId, title) => {
         try {
@@ -462,6 +469,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         try {
             await supabase.from('subtasks').delete().eq('id', subtaskId)
             await get().fetchTasks()
+
         } catch (error) {
             console.error('Error deleting subtask:', error)
         }
@@ -477,21 +485,43 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     },
 
     reorderSubtasks: async (taskId, newSubtasks) => {
+        const { tasks, syncingIds } = get()
+
+        // Mark as syncing
+        syncingIds.add(taskId)
+        set({ syncingIds: new Set(syncingIds), isSyncing: true })
+
+        // Optimistic update
+        const updatedTasks = tasks.map(t => {
+            if (t.id === taskId) {
+                return {
+                    ...t,
+                    subtasks: newSubtasks.map((s: any, idx: number) => ({ ...s, order: idx }))
+                }
+            }
+            return t
+        })
+        set({ tasks: updatedTasks })
+
+        // Persist to database - update each subtask's order
         try {
-            const updates = newSubtasks.map((s: any, idx: number) => ({
-                id: s.id,
-                order: idx,
-                task_id: taskId
-            }))
-
-            const { error } = await supabase.from('subtasks').upsert(updates)
-            if (error) throw error
-
-            await get().fetchTasks()
+            const updatePromises = newSubtasks.map((s: any, idx: number) =>
+                supabase.from('subtasks').update({ order: idx }).eq('id', s.id)
+            )
+            await Promise.all(updatePromises)
         } catch (error) {
             console.error('Error reordering subtasks:', error)
+            await get().fetchTasks()
+        } finally {
+            setTimeout(() => {
+                const { syncingIds } = get()
+                syncingIds.delete(taskId)
+                set({ syncingIds: new Set(syncingIds), isSyncing: false })
+            }, 1000)
         }
     },
+
+
 
     subscribeToTasks: () => {
         let debounceTimer: NodeJS.Timeout
@@ -501,64 +531,26 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'tasks' },
-                async (payload) => {
-                    const { syncingIds } = get()
-
-                    if (payload.eventType === 'INSERT') {
-                        if (get().tasks.some(t => t.id === payload.new.id)) return
-                        await get().fetchTasks()
-                    }
-                    else if (payload.eventType === 'UPDATE') {
-                        if (syncingIds.has(payload.new.id)) return
-
-                        const updatedTask = payload.new as Task
-                        const currentTask = get().tasks.find(t => t.id === updatedTask.id) ||
-                            get().trashTasks.find(t => t.id === updatedTask.id)
-
-                        if (currentTask && isSame(currentTask, updatedTask)) return
-
-                        const wasInTrash = !!currentTask?.trash_date
-                        const isInTrash = !!updatedTask.trash_date
-
-                        if (wasInTrash !== isInTrash) {
-                            await get().fetchTasks()
-                        } else {
-                            set(state => {
-                                const updateList = (list: Task[]) => {
-                                    const newList = list.map(t => t.id === updatedTask.id ? { ...t, ...updatedTask } : t)
-                                    return newList.sort((a, b) => (a.order || 0) - (b.order || 0))
-                                }
-                                return {
-                                    tasks: updateList(state.tasks),
-                                    trashTasks: updateList(state.trashTasks)
-                                }
-                            })
-                        }
-                    }
-                    else if (payload.eventType === 'DELETE') {
-                        set(state => ({
-                            tasks: state.tasks.filter(t => t.id !== payload.old.id),
-                            trashTasks: state.trashTasks.filter(t => t.id !== payload.old.id)
-                        }))
-                    }
+                () => {
+                    // Simple pattern: skip if we're syncing locally
+                    if (get().isSyncing) return
 
                     clearTimeout(debounceTimer)
                     debounceTimer = setTimeout(() => {
-                        const { syncingIds } = get()
-                        if (syncingIds.size === 0) {
-                            get().fetchTasks()
-                        }
-                    }, 3000)
+                        get().fetchTasks()
+                    }, 500)
                 }
             )
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'subtasks' },
                 () => {
+                    if (get().isSyncing) return
+
                     clearTimeout(debounceTimer)
                     debounceTimer = setTimeout(() => {
                         get().fetchTasks()
-                    }, 1000)
+                    }, 500)
                 }
             )
             .subscribe()
@@ -568,4 +560,5 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             supabase.removeChannel(channel)
         }
     }
+
 }))

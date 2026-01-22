@@ -279,7 +279,7 @@ export function TaskItem({
             transition={{
                 layout: { duration: 0.12 }
             }}
-            className={`bg-surface border border-outline-variant/30 rounded-[18px] flex flex-col group relative shadow-sm select-none hover:border-primary/30 hover:shadow-md ${task.status === 'done' ? 'opacity-60' : ''} ${animationState !== 'idle' ? 'pointer-events-none' : ''}`}
+            className={`bg-surface border border-outline-variant/30 rounded-[18px] flex flex-col group relative shadow-sm select-none hover:border-primary/60 hover:shadow-md ${task.status === 'done' ? 'opacity-75' : ''} ${animationState !== 'idle' ? 'pointer-events-none' : ''}`}
             ref={cardRef}
             onClick={() => {
                 // Click on card expands temporarily if not actually expanded
@@ -293,9 +293,9 @@ export function TaskItem({
                 <div
                     onPointerDown={(e) => dragControls.start(e)}
                     onClick={(e) => e.stopPropagation()}
-                    className="p-1 cursor-grab active:cursor-grabbing hover:bg-surface-variant/50 rounded-md transition-colors shrink-0"
+                    className="p-1 cursor-grab active:cursor-grabbing hover:bg-surface-variant rounded-md transition-colors shrink-0"
                 >
-                    <GripVertical className="w-3.5 h-3.5 text-on-surface-variant/30 group-hover:text-on-surface-variant/70 transition-colors" />
+                    <GripVertical className="w-3.5 h-3.5 text-on-surface-variant/50 group-hover:text-on-surface-variant/80 transition-colors" />
                 </div>
 
                 {/* Chevron - ANTES do título para expansão total */}
@@ -375,11 +375,11 @@ export function TaskItem({
                                             e.stopPropagation()
                                             setShowCalendar(true)
                                         }}
-                                        className={`group/date flex items-center pl-1.5 pr-0.5 py-0.5 rounded text-[10px] font-bold border w-fit transition-colors cursor-pointer select-none ${dateDisplay.text === 'Hoje'
-                                            ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
+                                        className={`group/date flex items-center pl-1.5 pr-0.5 py-0.5 rounded text-[10px] font-bold border w-fit transition-all cursor-pointer select-none ${dateDisplay.text === 'Hoje'
+                                            ? 'bg-primary/20 text-primary border-primary/30 hover:bg-primary/30'
                                             : dateDisplay.isOverdue
-                                                ? 'bg-error/10 text-error border-error/20 hover:bg-error/20'
-                                                : 'bg-surface-variant/30 text-on-surface-variant border-transparent hover:bg-surface-variant/50'
+                                                ? 'bg-error/15 text-error border-error/30 hover:bg-error/25'
+                                                : 'bg-surface-variant text-on-surface-variant border-transparent hover:bg-on-surface-variant/10'
                                             }`}
                                     >
                                         <Calendar className="w-3 h-3 mr-1" />
@@ -598,7 +598,7 @@ export function TaskItem({
                                 e.stopPropagation()
                                 onEditClick?.(task)
                             }}
-                            className="p-1 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-md transition-all"
+                            className="p-1 text-on-surface-variant hover:text-primary hover:bg-primary/20 rounded-md transition-all"
                             title="Editar"
                         >
                             <Pencil className="w-3.5 h-3.5" />
@@ -608,7 +608,7 @@ export function TaskItem({
                                 e.stopPropagation()
                                 handleMoveToTrash(task.id)
                             }}
-                            className="p-1 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-md transition-all"
+                            className="p-1 text-on-surface-variant hover:text-error hover:bg-error/20 rounded-md transition-all"
                             title="Excluir"
                         >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -673,7 +673,7 @@ export function TaskItem({
                                         <div className="flex flex-wrap gap-2 py-1.5">
                                             <button
                                                 onClick={() => updateTask(task.id, { due_at: new Date().toISOString() })}
-                                                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-surface-variant/30 hover:bg-surface-variant/50 text-[11px] font-medium text-on-surface transition-colors"
+                                                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-surface-variant hover:bg-primary/10 text-[11px] font-bold text-on-surface transition-colors border border-transparent hover:border-primary/20"
                                             >
                                                 Hoje
                                             </button>
@@ -683,7 +683,7 @@ export function TaskItem({
                                                     tomorrow.setDate(tomorrow.getDate() + 1)
                                                     updateTask(task.id, { due_at: tomorrow.toISOString() })
                                                 }}
-                                                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-surface-variant/30 hover:bg-surface-variant/50 text-[11px] font-medium text-on-surface transition-colors"
+                                                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-surface-variant hover:bg-primary/10 text-[11px] font-bold text-on-surface transition-colors border border-transparent hover:border-primary/20"
                                             >
                                                 Amanhã
                                             </button>
@@ -691,7 +691,7 @@ export function TaskItem({
                                             <div className="relative">
                                                 <button
                                                     onClick={() => setShowCalendar(!showCalendar)}
-                                                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${showCalendar ? 'bg-primary/10 text-primary' : 'bg-surface-variant/30 hover:bg-surface-variant/50 text-on-surface'}`}
+                                                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors border ${showCalendar ? 'bg-primary/20 text-primary border-primary/30' : 'bg-surface-variant hover:bg-primary/10 text-on-surface border-transparent hover:border-primary/20'}`}
                                                     title="Calendário"
                                                 >
                                                     <Calendar className="w-3.5 h-3.5" />
@@ -700,7 +700,7 @@ export function TaskItem({
 
                                             <button
                                                 onClick={handleToggleDescription}
-                                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${showDescription ? 'bg-primary/10 text-primary' : 'bg-surface-variant/30 hover:bg-surface-variant/50 text-on-surface'}`}
+                                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors border ${showDescription ? 'bg-primary/20 text-primary border-primary/30' : 'bg-surface-variant hover:bg-primary/10 text-on-surface border-transparent hover:border-primary/20'}`}
                                                 title="Descrição"
                                             >
                                                 <AlignLeft className="w-3.5 h-3.5" />
@@ -709,7 +709,7 @@ export function TaskItem({
 
                                             <button
                                                 onClick={handleToggleSubtasks}
-                                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${showSubtasks ? 'bg-primary/10 text-primary' : 'bg-surface-variant/30 hover:bg-surface-variant/50 text-on-surface'}`}
+                                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors border ${showSubtasks ? 'bg-primary/20 text-primary border-primary/30' : 'bg-surface-variant hover:bg-primary/10 text-on-surface border-transparent hover:border-primary/20'}`}
                                                 title="Subtarefas"
                                             >
                                                 <ListChecks className="w-3.5 h-3.5" />
@@ -724,7 +724,7 @@ export function TaskItem({
                                                     e.stopPropagation()
                                                     onRecurrenceClick?.(task)
                                                 }}
-                                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-variant/30 hover:bg-surface-variant/50 text-[11px] font-medium text-on-surface transition-colors"
+                                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-variant hover:bg-primary/10 text-[11px] font-bold text-on-surface transition-colors border border-transparent hover:border-primary/20"
                                                 title="Recorrência"
                                             >
                                                 <Repeat className="w-3.5 h-3.5" />

@@ -10,3 +10,5 @@
    - Manter um registro claro do que mudou (Changelog) nos artefatos da .agent ou README.
 11. **Versionamento e Deploy**:
     - Sempre que for realizado um deploy, a versão deve ser atualizada no `package.json` e na UI.
+12. **Ferramentas de Browser**:
+    - **NÃO** utilizar ferramentas de browser (`browser_subagent`) ou inspeção de DOM a menos que seja explicitamente solicitado pelo usuário.
