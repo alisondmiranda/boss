@@ -33,9 +33,10 @@ export function Dashboard() {
     const { toggleRightSidebar, isRightSidebarOpen, isLeftSidebarExpanded, setLeftSidebarExpanded, fetchUIPreferences, subscribeToUIPreferences } = useUIStore()
     const { signOut, user } = useAuthStore()
     const {
-        tasks, trashTasks, fetchTasks, addTask, toggleTask,
+        tasks, trashTasks, loading, fetchTasks, addTask, toggleTask,
         moveToTrash, restoreTask, permanentlyDeleteTask, toggleTaskSector, updateTask, updateTaskWithSubtasks,
-        clearDoneTasks, emptyTrash, updateSubtask, addSubtask, toggleSubtask, deleteSubtask, reorderTasks, reorderSubtasks
+        clearDoneTasks, emptyTrash, updateSubtask, addSubtask, toggleSubtask, deleteSubtask, reorderTasks, reorderSubtasks,
+        subscribeToTasks
     } = useTaskStore()
     const { sectors, userProfile, sortBy: sortBySettings } = useSettingsStore()
     const { addToast } = useToast()
@@ -127,8 +128,12 @@ export function Dashboard() {
     useEffect(() => {
         fetchTasks()
         fetchUIPreferences()
-        const unsubscribe = subscribeToUIPreferences()
-        return () => unsubscribe()
+        const unsubscribeUI = subscribeToUIPreferences()
+        const unsubscribeTasks = subscribeToTasks()
+        return () => {
+            unsubscribeUI()
+            unsubscribeTasks()
+        }
     }, [])
 
     useEffect(() => {
@@ -425,7 +430,7 @@ export function Dashboard() {
                         {/* Tasks (Nav) */}
                         <div
                             onClick={() => { setSidebarMode('nav'); setFilter([]); }}
-                            className={`w-full flex items-center rounded-r-[16px] text-sm font-medium transition-colors relative cursor-pointer group/item ${sidebarMode === 'nav' && filter.length === 0 ? 'bg-primary/10 text-primary' : 'text-on-surface hover:bg-surface-variant/30'}`}
+                            className={`w-full flex items-center rounded-r-[16px] text-sm font-medium transition-colors relative cursor-pointer group/item ${sidebarMode === 'nav' && filter.length === 0 ? 'bg-primary/10 text-primary' : 'text-on-surface hover:bg-surface-variant/70'}`}
                             role="button"
                         >
                             {/* Active Indicator Bar */}
@@ -465,7 +470,7 @@ export function Dashboard() {
                         {/* Chat (Assistant) */}
                         <button
                             onClick={() => setSidebarMode('chat')}
-                            className={`w-full flex items-center rounded-r-[16px] text-sm font-medium transition-colors relative ${sidebarMode === 'chat' ? 'bg-primary/10 text-primary' : 'text-on-surface hover:bg-surface-variant/30'}`}
+                            className={`w-full flex items-center rounded-r-[16px] text-sm font-medium transition-colors relative ${sidebarMode === 'chat' ? 'bg-primary/10 text-primary' : 'text-on-surface hover:bg-surface-variant/70'}`}
                         >
                             {sidebarMode === 'chat' && (
                                 <div className="absolute left-0 top-2 bottom-2 w-1 bg-primary rounded-r-full" />
@@ -513,7 +518,7 @@ export function Dashboard() {
                                     onClick={() => { setSidebarMode('nav'); toggleFilter(s.id); }}
                                     className={`w-full flex items-center rounded-r-[14px] text-[13px] font-medium transition-colors relative group py-0.5 ${isSelected
                                         ? 'bg-primary/5 text-primary font-semibold'
-                                        : 'text-on-surface hover:bg-surface-variant/30'
+                                        : 'text-on-surface hover:bg-surface-variant/70'
                                         }`}
                                     title={s.label}
                                 >
@@ -550,7 +555,7 @@ export function Dashboard() {
 
                 {/* Sidebar Footer */}
                 <div className="mt-auto px-6 py-6 border-t border-outline-variant/30 bg-surface-variant/5">
-                    <p className="text-[10px] text-on-surface-variant/30 font-bold uppercase tracking-widest pl-1">Boss v1.3.6</p>
+                    <p className="text-[10px] text-on-surface-variant/60 font-bold uppercase tracking-widest pl-1">Boss v1.3.7</p>
                 </div>
             </motion.aside>
 
@@ -677,7 +682,7 @@ export function Dashboard() {
                         {!isRightSidebarOpen && (
                             <button
                                 onClick={toggleRightSidebar}
-                                className="w-11 h-11 rounded-full border border-outline-variant hover:border-primary/50 text-on-surface-variant hover:text-primary hover:bg-surface-variant/30 flex items-center justify-center transition-all"
+                                className="w-11 h-11 rounded-full border border-outline-variant hover:border-primary text-on-surface-variant hover:text-primary hover:bg-surface-variant flex items-center justify-center transition-all"
                                 title="Abrir Ferramentas"
                             >
                                 <PanelRightOpen className="w-5 h-5" />
@@ -1115,9 +1120,24 @@ export function Dashboard() {
                                         })}
                                     </Reorder.Group>
 
+                                    {/* LOADING STATE */}
+                                    {loading && tasks.length === 0 && (
+                                        <div className="space-y-3">
+                                            {[1, 2, 3, 4, 5].map((i) => (
+                                                <div key={i} className="bg-surface/50 border border-outline-variant/20 rounded-[18px] p-4 flex items-center gap-4 animate-pulse">
+                                                    <div className="w-5 h-5 rounded-md bg-outline-variant/20" />
+                                                    <div className="flex-1 space-y-2">
+                                                        <div className="h-4 bg-outline-variant/20 rounded-md w-3/4" />
+                                                        <div className="h-3 bg-outline-variant/10 rounded-md w-1/4" />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     {/* EMPTY STATE FOR PENDING */}
-                                    {pendingTasks.length === 0 && doneTasksCount === 0 && (
-                                        <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
+                                    {!loading && pendingTasks.length === 0 && doneTasksCount === 0 && (
+                                        <div className="flex flex-col items-center justify-center py-20 text-center opacity-70">
                                             <div className="w-24 h-24 bg-surface-variant rounded-full flex items-center justify-center mb-4">
                                                 <Calendar className="w-10 h-10 text-on-surface-variant" />
                                             </div>
@@ -1245,7 +1265,7 @@ export function Dashboard() {
 
                                 <div className="space-y-3">
                                     {trashTasks.length === 0 ? (
-                                        <div className="text-center py-20 opacity-40">
+                                        <div className="text-center py-20 opacity-70">
                                             <Ghost className="w-16 h-16 mx-auto mb-4" />
                                             <p className="text-lg font-medium">Lixeira vazia</p>
                                         </div>

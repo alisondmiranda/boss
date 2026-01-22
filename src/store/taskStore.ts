@@ -1,46 +1,30 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
-import { addDays, addWeeks, addMonths, addYears } from 'date-fns'
-
-export interface RecurrenceInput {
-    frequency: 'daily' | 'weekly' | 'monthly' | 'yearly'
-    interval: number
-    week_days?: number[]
-    ends_on?: Date | null
-}
-
-export interface Recurrence {
-    id: string
-    user_id: string
-    frequency: 'daily' | 'weekly' | 'monthly' | 'yearly'
-    interval: number
-    week_days?: number[]
-    ends_on?: string
-    created_at: string
-}
 
 export interface Subtask {
     id: string
-    task_id: string
     title: string
-    completed: boolean
-    order: number
+    status?: 'pending' | 'done'
+    completed?: boolean // For UI compatibility
+    task_id: string
     created_at: string
+    order: number
+    details?: string
 }
 
 export interface Task {
     id: string
     title: string
-    status: 'todo' | 'doing' | 'done' | 'trash'
-    sector: string | string[]
+    status: 'pending' | 'done'
+    sector: any // Compatibility with string and string[]
     user_id: string
     created_at: string
-    trash_date?: string
-    due_at?: string | null
-    recurrence_id?: string | null
-    details?: string | null
-    subtasks?: Subtask[]
-    order?: number
+    trash_date: string | null
+    due_at: string | null
+    recurrence_id: string | null
+    details: string | null
+    subtasks: Subtask[]
+    order: number
 }
 
 interface TaskState {
@@ -48,552 +32,464 @@ interface TaskState {
     trashTasks: Task[]
     loading: boolean
     isSyncing: boolean
-    filter: string[]
-    setFilter: (sectors: string[]) => void
+    syncingIds: Set<string>
+    filter: string | null
+    pendingSectorUpdates: Record<string, string>
+
+    setFilter: (sectorId: string | null) => void
     fetchTasks: () => Promise<void>
-    addTask: (title: string, sector: string | string[], dueAt?: Date | null, recurrence?: RecurrenceInput | null, details?: string | null, subtasks?: Omit<Subtask, 'id' | 'task_id' | 'created_at'>[]) => Promise<void>
-    updateTaskSector: (id: string, newSector: string | string[]) => Promise<void>
+    addTask: (title: any, sectors?: any, dueAt?: any, recurrence?: any, details?: any, subtasks?: any[]) => Promise<void>
     updateTask: (id: string, updates: Partial<Task>) => Promise<void>
-    updateTaskWithSubtasks: (id: string, updates: Partial<Task>, newSubtasks: Omit<Subtask, 'id' | 'task_id' | 'created_at'>[]) => Promise<void>
-    toggleTask: (id: string, currentStatus: Task['status']) => Promise<void>
+    updateTaskWithSubtasks: (id: string, updates: Partial<Task>, subtasks: any[]) => Promise<void>
+    toggleTask: (id: string, currentStatus: string) => Promise<void>
+    updateTaskSector: (taskId: string, sectorIds: string) => Promise<void>
+    toggleTaskSector: (taskId: string, sectorId: string, allSectors: { id: string, label: string }[]) => Promise<void>
     moveToTrash: (id: string) => Promise<void>
     restoreTask: (id: string) => Promise<void>
     permanentlyDeleteTask: (id: string) => Promise<void>
-    reorderTasks: (newTasks: Task[]) => Promise<void>
     clearDoneTasks: () => Promise<void>
     emptyTrash: () => Promise<void>
-    subscribeToTasks: () => () => void
-    // Subtask methods
+    reorderTasks: (newTasks: Task[]) => Promise<void>
+
+    // Subtask actions
     addSubtask: (taskId: string, title: string) => Promise<void>
     toggleSubtask: (subtaskId: string) => Promise<void>
     deleteSubtask: (subtaskId: string) => Promise<void>
-    updateSubtask: (subtaskId: string, title: string) => Promise<void>
-    reorderSubtasks: (taskId: string, newSubtasks: Subtask[]) => Promise<void>
-    // updateSubtaskOrder: (taskId: string, subtaskIds: string[]) => Promise<void>
-    toggleTaskSector: (taskId: string, sectorId: string, allSectors: { id: string; label: string }[]) => Promise<void>
+    updateSubtask: (subtaskId: string, title: string, details?: string) => Promise<void>
+    reorderSubtasks: (taskId: string, newSubtasks: any[]) => Promise<void>
+
+    subscribeToTasks: () => () => void
 }
 
-// Map to track pending updates for debouncing
-const pendingSectorUpdates = new Map<string, { sectors: string[]; timeout: NodeJS.Timeout }>()
+const isSame = (a: any, b: any): boolean => {
+    const keys = ['title', 'status', 'sector', 'due_at', 'details', 'order', 'trash_date']
+    for (const key of keys) {
+        if (a[key] !== b[key]) return false
+    }
+    return true
+}
 
 export const useTaskStore = create<TaskState>((set, get) => ({
     tasks: [],
     trashTasks: [],
     loading: false,
     isSyncing: false,
-    filter: [],
+    syncingIds: new Set<string>(),
+    filter: null,
+    pendingSectorUpdates: {},
 
-    setFilter: (sectors) => set({ filter: sectors }),
+    setFilter: (sectorId) => set({ filter: sectorId }),
 
     fetchTasks: async () => {
         set({ loading: true })
+        try {
+            const user = (await supabase.auth.getUser()).data.user
+            if (!user) return
 
-        // Fetch active tasks with subtasks
-        const { data: activeData, error: activeError } = await supabase
-            .from('tasks')
-            .select(`
-                *,
-                subtasks (*)
-            `)
-            .neq('status', 'trash')
-            .order('created_at', { ascending: false })
+            const { data, error } = await supabase
+                .from('tasks')
+                .select('*, subtasks(*)')
+                .eq('user_id', user.id)
+                .order('order', { ascending: true })
 
-        // Fetch trash tasks with subtasks
-        const { data: trashData, error: trashError } = await supabase
-            .from('tasks')
-            .select(`
-                *,
-                subtasks (*)
-            `)
-            .eq('status', 'trash')
-            .order('trash_date', { ascending: false })
+            if (error) throw error
 
-        if (activeError) console.error('Error fetching active tasks:', activeError)
-        if (trashError) console.error('Error fetching trash tasks:', trashError)
+            const tasksData = (data || []).map((t: any) => ({
+                ...t,
+                subtasks: (t.subtasks || [])
+                    .map((s: any) => ({
+                        ...s,
+                        status: s.status || (s.completed ? 'done' : 'pending'),
+                        completed: s.status === 'done' || !!s.completed
+                    }))
+                    .sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+            }))
 
-        // Auto-cleanup: Permanently delete tasks in trash > 30 days
-        const now = new Date()
-        const validTrashTasks: Task[] = []
-        const expiredTaskIds: string[] = []
+            const tasks = tasksData.filter((t: any) => !t.trash_date)
+            const trashTasks = tasksData.filter((t: any) => t.trash_date)
 
-        if (trashData) {
-            (trashData as Task[]).forEach(task => {
-                if (task.trash_date) {
-                    const trashDate = new Date(task.trash_date)
-                    const diffTime = Math.abs(now.getTime() - trashDate.getTime())
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+            const { pendingSectorUpdates } = get()
+            const mergedTasks = tasks.map((t: any) => ({
+                ...t,
+                sector: pendingSectorUpdates[t.id] || t.sector
+            }))
 
-                    if (diffDays > 30) {
-                        expiredTaskIds.push(task.id)
-                    } else {
-                        validTrashTasks.push(task)
-                    }
-                } else {
-                    // Legacy trash (if any) or missing date, keep it or default delete? Keep safe.
-                    validTrashTasks.push(task)
-                }
-            })
+            set({ tasks: mergedTasks, trashTasks, loading: false })
+        } catch (error) {
+            console.error('Error fetching tasks:', error)
+            set({ loading: false })
         }
-
-        // Background delete expired
-        if (expiredTaskIds.length > 0) {
-            console.log('Cleaning up expired trash tasks:', expiredTaskIds)
-            supabase.from('tasks').delete().in('id', expiredTaskIds).then(({ error }) => {
-                if (error) console.error('Failed to cleanup trash:', error)
-            })
-        }
-
-        const tasks = (activeData as Task[]) || []
-        const trash = validTrashTasks
-
-        // Apply any pending sectors to the freshly fetched data to prevent "flicker back"
-        const mergePending = (taskList: Task[]) => taskList.map(t => {
-            const pending = pendingSectorUpdates.get(t.id)
-            return pending ? { ...t, sector: pending.sectors } : t
-        })
-
-        set({
-            tasks: mergePending(tasks),
-            trashTasks: mergePending(trash),
-            loading: false
-        })
     },
 
-    addTask: async (title, sector, dueAt, recurrence, details, subtasks) => {
-        const tempId = Math.random().toString()
+    addTask: async (title, sectors = [], dueAt = null, recurrence = null, details = null, subtasksInput = []) => {
         const user = (await supabase.auth.getUser()).data.user
-        if (!user) throw new Error('User not authenticated')
-        const currentUser = user.id
+        if (!user) return
 
-        // 1. Handle Recurrence Creation
-        let recurrenceId: string | null = null
-        if (recurrence) {
-            const { data: recData, error: recError } = await supabase
-                .from('recurrences')
+        const { tasks } = get()
+        const maxOrder = tasks.length > 0 ? Math.max(...tasks.map(t => t.order || 0)) : -1
+
+        let finalTitle = title
+        let finalSectors = sectors
+        if (typeof title === 'object' && title !== null) {
+            finalTitle = title.title
+            finalSectors = title.sector || []
+        }
+
+        try {
+            const { data: taskData, error: taskError } = await supabase
+                .from('tasks')
                 .insert([{
-                    user_id: currentUser,
-                    frequency: recurrence.frequency,
-                    interval: recurrence.interval,
-                    week_days: recurrence.week_days,
-                    ends_on: recurrence.ends_on ? recurrence.ends_on.toISOString() : null
+                    title: finalTitle,
+                    status: 'pending',
+                    sector: Array.isArray(finalSectors) ? finalSectors.join(',') : (finalSectors || 'personal'),
+                    user_id: user.id,
+                    due_at: dueAt instanceof Date ? dueAt.toISOString() : dueAt,
+                    recurrence_id: recurrence?.id || null,
+                    details,
+                    order: maxOrder + 1
                 }])
                 .select()
                 .single()
 
-            if (recError) {
-                console.error('Error creating recurrence:', recError)
-            } else {
-                recurrenceId = recData.id
-            }
-        }
+            if (taskError) throw taskError
 
-        const newTask: Task = {
-            id: tempId,
-            title,
-            sector,
-            status: 'todo',
-            user_id: currentUser,
-            created_at: new Date().toISOString(),
-            due_at: dueAt ? dueAt.toISOString() : null,
-            recurrence_id: recurrenceId,
-            details: details || null,
-            subtasks: [],
-            order: get().tasks.length
-        }
-
-        set(state => ({ tasks: [newTask, ...state.tasks] }))
-
-        const { data: taskData, error: taskError } = await supabase
-            .from('tasks')
-            .insert([{
-                title,
-                sector,
-                status: 'todo',
-                user_id: currentUser,
-                due_at: newTask.due_at,
-                recurrence_id: recurrenceId,
-                details: newTask.details,
-                order: newTask.order
-            }])
-            .select()
-            .single()
-
-        if (taskError) {
-            console.error('Error adding task:', taskError)
-            set(state => ({ tasks: state.tasks.filter(t => t.id !== tempId) }))
-            throw taskError
-        } else {
-            // 2. Create subtasks if provided
-            if (subtasks && subtasks.length > 0 && taskData) {
-                const subtasksToInsert = subtasks.map((st, index) => ({
+            if (subtasksInput.length > 0 && taskData) {
+                const subtasksToInsert = subtasksInput.map((s: any, idx: number) => ({
+                    title: s.title,
+                    status: s.status || (s.completed ? 'done' : 'pending'),
                     task_id: taskData.id,
-                    title: st.title,
-                    completed: st.completed,
-                    order: index
+                    order: idx,
+                    details: s.details
                 }))
-
-                const { data: subtasksData, error: subtasksError } = await supabase
-                    .from('subtasks')
-                    .insert(subtasksToInsert)
-                    .select()
-
-                if (subtasksError) {
-                    console.error('Error creating subtasks:', subtasksError)
-                } else {
-                    taskData.subtasks = subtasksData
-                }
+                await supabase.from('subtasks').insert(subtasksToInsert)
             }
 
-            set(state => ({
-                tasks: state.tasks.map(t => t.id === tempId ? taskData : t)
-            }))
+            await get().fetchTasks()
+        } catch (error) {
+            console.error('Error adding task:', error)
         }
     },
 
-    updateTaskSector: async (id, newSector) => {
-        set(state => ({
-            tasks: state.tasks.map(t => t.id === id ? { ...t, sector: newSector } : t)
-        }))
+    updateTask: async (id, updates) => {
+        const { syncingIds, tasks, trashTasks } = get()
+        syncingIds.add(id)
+        set({ syncingIds: new Set(syncingIds) })
 
-        const { error } = await supabase
-            .from('tasks')
-            .update({ sector: newSector })
-            .eq('id', id)
-
-        if (error) {
-            console.error('Error updating task sector:', error)
+        const cleanUpdates = { ...updates }
+        if (Array.isArray(cleanUpdates.sector)) {
+            // @ts-ignore
+            cleanUpdates.sector = cleanUpdates.sector.join(',')
         }
+
+        const updateList = (list: Task[]) => list.map(t => t.id === id ? { ...t, ...cleanUpdates } as Task : t)
+        set({
+            tasks: updateList(tasks),
+            trashTasks: updateList(trashTasks)
+        })
+
+        try {
+            const { error } = await supabase
+                .from('tasks')
+                .update(cleanUpdates)
+                .eq('id', id)
+
+            if (error) throw error
+        } catch (error) {
+            console.error('Error updating task:', error)
+        } finally {
+            setTimeout(() => {
+                const { syncingIds } = get()
+                syncingIds.delete(id)
+                set({ syncingIds: new Set(syncingIds) })
+            }, 1000)
+        }
+    },
+
+    updateTaskWithSubtasks: async (id, updates, subtasksInput) => {
+        const { syncingIds } = get()
+        syncingIds.add(id)
+        set({ syncingIds: new Set(syncingIds) })
+
+        try {
+            const cleanUpdates = { ...updates }
+            if (Array.isArray(cleanUpdates.sector)) {
+                // @ts-ignore
+                cleanUpdates.sector = cleanUpdates.sector.join(',')
+            }
+
+            const { error: taskError } = await supabase
+                .from('tasks')
+                .update(cleanUpdates)
+                .eq('id', id)
+
+            if (taskError) throw taskError
+
+            for (const s of subtasksInput) {
+                const subStatus = s.status || (s.completed ? 'done' : 'pending')
+                if (s.id && !s.id.toString().includes('temp')) {
+                    await supabase.from('subtasks').update({
+                        title: s.title,
+                        status: subStatus,
+                        order: s.order,
+                        details: s.details
+                    }).eq('id', s.id)
+                } else {
+                    await supabase.from('subtasks').insert([{
+                        task_id: id,
+                        title: s.title,
+                        status: subStatus,
+                        order: s.order,
+                        details: s.details
+                    }])
+                }
+            }
+
+            await get().fetchTasks()
+        } catch (error) {
+            console.error('Error updating task with subtasks:', error)
+        } finally {
+            setTimeout(() => {
+                const { syncingIds } = get()
+                syncingIds.delete(id)
+                set({ syncingIds: new Set(syncingIds) })
+            }, 1000)
+        }
+    },
+
+    toggleTask: async (id, currentStatus) => {
+        const newStatus = currentStatus === 'pending' ? 'done' : 'pending'
+        await get().updateTask(id, { status: newStatus as any })
+    },
+
+    updateTaskSector: async (taskId, sectorId) => {
+        const { pendingSectorUpdates } = get()
+        set({
+            pendingSectorUpdates: { ...pendingSectorUpdates, [taskId]: sectorId }
+        })
+        await get().updateTask(taskId, { sector: sectorId })
+
+        setTimeout(() => {
+            const { pendingSectorUpdates } = get()
+            const newPending = { ...pendingSectorUpdates }
+            delete newPending[taskId]
+            set({ pendingSectorUpdates: newPending })
+        }, 2000)
     },
 
     toggleTaskSector: async (taskId, sectorId, allSectors) => {
         const task = get().tasks.find(t => t.id === taskId)
         if (!task) return
 
-        const selectedSector = allSectors.find(s => s.id === sectorId)
-        const isSelectingGeral = selectedSector?.label.toLowerCase() === 'geral' || selectedSector?.label.toLowerCase() === 'general'
+        const currentSectors = task.sector?.toString().split(',').filter(Boolean) || []
+        let newSectors: string[]
 
-        // Get the most current sectors (including pending ones)
-        let currentSectors: string[] = []
-        const pending = pendingSectorUpdates.get(taskId)
-
-        if (pending) {
-            currentSectors = [...pending.sectors]
-            clearTimeout(pending.timeout)
+        if (currentSectors.includes(sectorId)) {
+            newSectors = currentSectors.filter((s: string) => s !== sectorId)
         } else {
-            currentSectors = Array.isArray(task.sector) ? [...task.sector] : [task.sector]
+            newSectors = [...currentSectors, sectorId]
         }
 
-        if (isSelectingGeral) {
-            currentSectors = [sectorId]
-        } else if (currentSectors.includes(sectorId)) {
-            currentSectors = currentSectors.filter(s => s !== sectorId)
-            if (currentSectors.length === 0) {
-                const geral = allSectors.find(s => s.label.toLowerCase() === 'geral' || s.label.toLowerCase() === 'general')
-                currentSectors = geral ? [geral.id] : ['geral']
-            }
-        } else {
-            currentSectors = currentSectors.filter(id => {
-                const sec = allSectors.find(s => s.id === id)
-                return sec && sec.label.toLowerCase() !== 'geral' && sec.label.toLowerCase() !== 'general'
-            })
-            currentSectors = [...currentSectors, sectorId]
-        }
+        const sectorOrder = allSectors.map(s => s.id)
+        newSectors.sort((a, b) => sectorOrder.indexOf(a) - sectorOrder.indexOf(b))
 
-        // 1. Instant Optimistic Update in UI
-        set(state => ({
-            tasks: state.tasks.map(t => t.id === taskId ? { ...t, sector: currentSectors } : t)
-        }))
-
-        // 2. Debounced Server Update
-        const timeout = setTimeout(async () => {
-            const pending = pendingSectorUpdates.get(taskId)
-            // If this timeout is still the active one for this task
-            if (pending && pending.timeout === timeout) {
-                const finalSectors = pending.sectors
-
-                const { error } = await supabase
-                    .from('tasks')
-                    .update({ sector: finalSectors })
-                    .eq('id', taskId)
-
-                if (error) {
-                    console.error('Error toggling task sector:', error)
-                    get().fetchTasks()
-                }
-
-                pendingSectorUpdates.delete(taskId)
-            }
-        }, 300)
-
-        pendingSectorUpdates.set(taskId, { sectors: currentSectors, timeout })
-    },
-
-    updateTask: async (id, updates) => {
-        set(state => ({
-            tasks: state.tasks.map(t => t.id === id ? { ...t, ...updates } : t)
-        }))
-
-        const { error } = await supabase
-            .from('tasks')
-            .update(updates)
-            .eq('id', id)
-
-        if (error) {
-            console.error('Error updating task:', error)
-        }
-    },
-
-    updateTaskWithSubtasks: async (id, updates, newSubtasks) => {
-        // 1. Update Task Details
-        await get().updateTask(id, updates)
-
-        // 2. Replace Subtasks
-        const { error: delError } = await supabase
-            .from('subtasks')
-            .delete()
-            .eq('task_id', id)
-
-        if (delError) {
-            console.error('Error deleting old subtasks:', delError)
-            return
-        }
-
-        if (newSubtasks.length > 0) {
-            const toInsert = newSubtasks.map((st, index) => ({
-                task_id: id,
-                title: st.title,
-                completed: st.completed || false,
-                order: index
-            }))
-
-            const { error: insError } = await supabase
-                .from('subtasks')
-                .insert(toInsert)
-
-            if (insError) console.error('Error inserting new subtasks:', insError)
-        }
-
-        // 3. Refresh to get fresh state (IDs etc)
-        await get().fetchTasks()
-    },
-
-    toggleTask: async (id, currentStatus) => {
-        const tasks = get().tasks
-        const task = tasks.find(t => t.id === id)
-        if (!task) return
-
-        const newStatus = currentStatus === 'todo' ? 'done' : 'todo'
-        const previousStatus = task.status
-
-        // Optimistic Update for current task
-        set(state => ({
-            tasks: state.tasks.map(t => t.id === id ? { ...t, status: newStatus } : t)
-        }))
-
-        // Handle Recurrence if marking as DONE
-        if (newStatus === 'done' && task.recurrence_id && task.status !== 'done') {
-            try {
-                // Fetch recurrence rule
-                const { data: rule, error: ruleError } = await supabase
-                    .from('recurrences')
-                    .select('*')
-                    .eq('id', task.recurrence_id)
-                    .single()
-
-                if (rule && !ruleError) {
-                    // Calculate next date
-                    const currentDue = task.due_at ? new Date(task.due_at) : new Date()
-                    // If no due date, base it on completion (now)
-
-                    let nextDate: Date = new Date(currentDue)
-                    const interval = rule.interval || 1
-
-                    switch (rule.frequency) {
-                        case 'daily': nextDate = addDays(currentDue, interval); break;
-                        case 'weekly': nextDate = addWeeks(currentDue, interval); break;
-                        case 'monthly': nextDate = addMonths(currentDue, interval); break;
-                        case 'yearly': nextDate = addYears(currentDue, interval); break;
-                    }
-
-                    // Check ends_on
-                    const endsOn = rule.ends_on ? new Date(rule.ends_on) : null
-                    if (!endsOn || nextDate <= endsOn) {
-                        // Create Next Task
-                        const tempId = Math.random().toString()
-                        const nextTask: Task = {
-                            ...task,
-                            id: tempId,
-                            status: 'todo',
-                            due_at: nextDate.toISOString(),
-                            created_at: new Date().toISOString()
-                        }
-
-                        // Optimistic Add
-                        set(state => ({ tasks: [nextTask, ...state.tasks] }))
-
-                        // DB Insert
-                        await supabase.from('tasks').insert([{
-                            title: task.title,
-                            sector: task.sector,
-                            user_id: task.user_id,
-                            status: 'todo',
-                            due_at: nextDate.toISOString(),
-                            recurrence_id: task.recurrence_id
-                        }])
-                    }
-                }
-            } catch (err) {
-                console.error('Error processing recurrence:', err)
-            }
-        }
-
-        const { error } = await supabase
-            .from('tasks')
-            .update({ status: newStatus })
-            .eq('id', id)
-
-        if (error) {
-            console.error('Error toggling task:', error)
-            set(state => ({
-                tasks: state.tasks.map(t => t.id === id ? { ...t, status: previousStatus } : t)
-            }))
-        }
+        await get().updateTaskSector(taskId, newSectors.join(','))
     },
 
     moveToTrash: async (id) => {
-        const taskMoving = get().tasks.find(t => t.id === id)
-        if (!taskMoving) return
+        const { tasks, trashTasks } = get()
+        const taskToMove = tasks.find(t => t.id === id)
+        if (!taskToMove) return
 
-        // Optimistic Move
-        set(state => ({
-            tasks: state.tasks.filter(t => t.id !== id),
-            trashTasks: [{ ...taskMoving, status: 'trash', trash_date: new Date().toISOString() }, ...state.trashTasks]
-        }))
+        const trashDate = new Date().toISOString()
+        set({
+            tasks: tasks.filter(t => t.id !== id),
+            trashTasks: [...trashTasks, { ...taskToMove, trash_date: trashDate }]
+        })
 
-        const { error } = await supabase
-            .from('tasks')
-            .update({ status: 'trash', trash_date: new Date().toISOString() })
-            .eq('id', id)
-
-        if (error) {
+        try {
+            await supabase
+                .from('tasks')
+                .update({ trash_date: trashDate })
+                .eq('id', id)
+        } catch (error) {
             console.error('Error moving to trash:', error)
-            // Rollback
-            set(state => ({
-                tasks: [...state.tasks, taskMoving],
-                trashTasks: state.trashTasks.filter(t => t.id !== id)
-            }))
-            throw error
+            await get().fetchTasks()
         }
     },
 
     restoreTask: async (id) => {
-        const taskRestoring = get().trashTasks.find(t => t.id === id)
-        if (!taskRestoring) return
+        const { tasks, trashTasks } = get()
+        const taskToRestore = trashTasks.find(t => t.id === id)
+        if (!taskToRestore) return
 
-        // Optimistic Restore
-        set(state => ({
-            trashTasks: state.trashTasks.filter(t => t.id !== id),
-            tasks: [{ ...taskRestoring, status: 'todo', trash_date: undefined }, ...state.tasks]
-        }))
+        set({
+            trashTasks: trashTasks.filter(t => t.id !== id),
+            tasks: [...tasks, { ...taskToRestore, trash_date: null }].sort((a, b) => (a.order || 0) - (b.order || 0))
+        })
 
-        const { error } = await supabase
-            .from('tasks')
-            .update({ status: 'todo', trash_date: null })
-            .eq('id', id)
-
-        if (error) {
+        try {
+            await supabase
+                .from('tasks')
+                .update({ trash_date: null })
+                .eq('id', id)
+        } catch (error) {
             console.error('Error restoring task:', error)
-            // Rollback
-            set(state => ({
-                trashTasks: [...state.trashTasks, taskRestoring],
-                tasks: state.tasks.filter(t => t.id !== id)
-            }))
+            await get().fetchTasks()
         }
     },
 
     permanentlyDeleteTask: async (id) => {
-        const { error } = await supabase.from('tasks').delete().eq('id', id)
-        if (!error) {
-            set(state => ({ trashTasks: state.trashTasks.filter(t => t.id !== id) }))
+        const { trashTasks } = get()
+        set({ trashTasks: trashTasks.filter(t => t.id !== id) })
+
+        try {
+            await supabase.from('tasks').delete().eq('id', id)
+        } catch (error) {
+            console.error('Error deleting task:', error)
+            await get().fetchTasks()
         }
     },
 
-    reorderTasks: async (newOrderOfVisible) => {
-        // 1. Update order property for each task IMMEDIATELY (sync)
-        const updatedTasks = newOrderOfVisible.map((task, index) => ({
-            ...task,
-            order: index
-        }))
-
-        // Keep non-visible tasks at the end
-        const visibleIds = new Set(newOrderOfVisible.map(t => t.id))
-        const nonVisibleTasks = get().tasks
-            .filter(t => !visibleIds.has(t.id))
-            .map((t, i) => ({ ...t, order: updatedTasks.length + i }))
-
-        const allTasks = [...updatedTasks, ...nonVisibleTasks]
-
-        // 2. Update state IMMEDIATELY for instant UI response
-        set({ tasks: allTasks, isSyncing: true })
-
-        // 3. Persist to Supabase (async, non-blocking)
-        Promise.all(
-            allTasks.map(t =>
-                supabase.from('tasks').update({ order: t.order }).eq('id', t.id)
-            )
-        ).then(results => {
-            const errors = results.filter(r => r.error)
-            if (errors.length > 0) console.error('Error persisting task order:', errors[0].error)
-
-            // Allow syncing again after a short buffer
-            setTimeout(() => set({ isSyncing: false }), 1000)
-        })
-    },
-
     clearDoneTasks: async () => {
-        const doneTasks = get().tasks.filter(t => t.status === 'done')
-        if (doneTasks.length === 0) return
+        const { tasks } = get()
+        const doneTasks = tasks.filter(t => t.status === 'done')
+        const trashDate = new Date().toISOString()
 
-        const doneTaskIds = doneTasks.map(t => t.id)
-        const now = new Date().toISOString()
+        set({
+            tasks: tasks.filter(t => t.status !== 'done'),
+            trashTasks: [...get().trashTasks, ...doneTasks.map(t => ({ ...t, trash_date: trashDate }))]
+        })
 
-        // Move active 'done' tasks to trashTasks
-        set(state => ({
-            tasks: state.tasks.filter(t => t.status !== 'done'),
-            trashTasks: [
-                ...doneTasks.map(t => ({ ...t, status: 'trash' as const, trash_date: now })),
-                ...state.trashTasks
-            ]
-        }))
-
-        // Batch update in Supabase
-        const { error } = await supabase
-            .from('tasks')
-            .update({ status: 'trash', trash_date: now })
-            .in('id', doneTaskIds)
-
-        if (error) {
+        try {
+            const ids = doneTasks.map(t => t.id)
+            await supabase.from('tasks').update({ trash_date: trashDate }).in('id', ids)
+        } catch (error) {
             console.error('Error clearing done tasks:', error)
-            // Revert is complex here, generally rely on refetch if major fail, or just log.
-            // For simplicity in this codebase, we log.
-            get().fetchTasks()
+            await get().fetchTasks()
         }
     },
 
     emptyTrash: async () => {
-        const trashIds = get().trashTasks.map(t => t.id)
-        if (trashIds.length === 0) return
-
         set({ trashTasks: [] })
-
-        const { error } = await supabase
-            .from('tasks')
-            .delete()
-            .in('id', trashIds)
-
-        if (error) {
+        try {
+            const user = (await supabase.auth.getUser()).data.user
+            if (!user) return
+            await supabase.from('tasks').delete().not('trash_date', 'is', null).eq('user_id', user.id)
+        } catch (error) {
             console.error('Error emptying trash:', error)
-            get().fetchTasks()
+            await get().fetchTasks()
+        }
+    },
+
+    reorderTasks: async (newTasks) => {
+        const oldTasks = get().tasks
+        set({ tasks: newTasks })
+
+        const updates = newTasks
+            .map((task, index) => ({ id: task.id, order: index }))
+            .filter((update) => {
+                const oldTask = oldTasks.find(t => t.id === update.id)
+                return !oldTask || oldTask.order !== update.order
+            })
+
+        if (updates.length === 0) return
+
+        try {
+            const { error } = await supabase.from('tasks').upsert(
+                updates.map(u => ({ id: u.id, order: u.order })),
+                { onConflict: 'id' }
+            )
+            if (error) throw error
+        } catch (error) {
+            console.error('Error reordering tasks:', error)
+        }
+    },
+
+    addSubtask: async (taskId, title) => {
+        try {
+            const { data: subtasks } = await supabase.from('subtasks').select('order').eq('task_id', taskId)
+            const maxOrder = subtasks && subtasks.length > 0 ? Math.max(...subtasks.map(s => s.order || 0)) : -1
+
+            await supabase.from('subtasks').insert([{
+                task_id: taskId,
+                title,
+                status: 'pending',
+                order: maxOrder + 1
+            }])
+
+            await get().fetchTasks()
+        } catch (error) {
+            console.error('Error adding subtask:', error)
+        }
+    },
+
+    toggleSubtask: async (subtaskId) => {
+        try {
+            const { data: subtask } = await supabase.from('subtasks').select('status, task_id').eq('id', subtaskId).single()
+            if (!subtask) return
+
+            const newStatus = subtask.status === 'pending' ? 'done' : 'pending'
+
+            const { syncingIds } = get()
+            syncingIds.add(subtask.task_id)
+            set({ syncingIds: new Set(syncingIds) })
+
+            await supabase.from('subtasks').update({ status: newStatus }).eq('id', subtaskId)
+
+            const { tasks } = get()
+            const newTasks = tasks.map(t => {
+                if (t.id === subtask.task_id) {
+                    return {
+                        ...t,
+                        subtasks: t.subtasks.map(st => st.id === subtaskId ? { ...st, status: newStatus as any, completed: newStatus === 'done' } : st)
+                    }
+                }
+                return t
+            })
+            set({ tasks: newTasks })
+
+            setTimeout(() => {
+                const { syncingIds } = get()
+                syncingIds.delete(subtask.task_id)
+                set({ syncingIds: new Set(syncingIds) })
+            }, 1000)
+        } catch (error) {
+            console.error('Error toggling subtask:', error)
+        }
+    },
+
+    deleteSubtask: async (subtaskId) => {
+        try {
+            await supabase.from('subtasks').delete().eq('id', subtaskId)
+            await get().fetchTasks()
+        } catch (error) {
+            console.error('Error deleting subtask:', error)
+        }
+    },
+
+    updateSubtask: async (subtaskId, title, details) => {
+        try {
+            await supabase.from('subtasks').update({ title, details }).eq('id', subtaskId)
+            await get().fetchTasks()
+        } catch (error) {
+            console.error('Error updating subtask:', error)
+        }
+    },
+
+    reorderSubtasks: async (taskId, newSubtasks) => {
+        try {
+            const updates = newSubtasks.map((s: any, idx: number) => ({
+                id: s.id,
+                order: idx,
+                task_id: taskId
+            }))
+
+            const { error } = await supabase.from('subtasks').upsert(updates)
+            if (error) throw error
+
+            await get().fetchTasks()
+        } catch (error) {
+            console.error('Error reordering subtasks:', error)
         }
     },
 
@@ -604,20 +500,65 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             .channel('tasks-realtime')
             .on(
                 'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'tasks'
-                },
-                () => {
-                    // Skip updates if we are manually syncing (e.g. dragging)
-                    if (get().isSyncing) return
+                { event: '*', schema: 'public', table: 'tasks' },
+                async (payload) => {
+                    const { syncingIds } = get()
 
-                    // Debounce fetch calls to prevent UI jumping during batch updates (like reordering)
+                    if (payload.eventType === 'INSERT') {
+                        if (get().tasks.some(t => t.id === payload.new.id)) return
+                        await get().fetchTasks()
+                    }
+                    else if (payload.eventType === 'UPDATE') {
+                        if (syncingIds.has(payload.new.id)) return
+
+                        const updatedTask = payload.new as Task
+                        const currentTask = get().tasks.find(t => t.id === updatedTask.id) ||
+                            get().trashTasks.find(t => t.id === updatedTask.id)
+
+                        if (currentTask && isSame(currentTask, updatedTask)) return
+
+                        const wasInTrash = !!currentTask?.trash_date
+                        const isInTrash = !!updatedTask.trash_date
+
+                        if (wasInTrash !== isInTrash) {
+                            await get().fetchTasks()
+                        } else {
+                            set(state => {
+                                const updateList = (list: Task[]) => {
+                                    const newList = list.map(t => t.id === updatedTask.id ? { ...t, ...updatedTask } : t)
+                                    return newList.sort((a, b) => (a.order || 0) - (b.order || 0))
+                                }
+                                return {
+                                    tasks: updateList(state.tasks),
+                                    trashTasks: updateList(state.trashTasks)
+                                }
+                            })
+                        }
+                    }
+                    else if (payload.eventType === 'DELETE') {
+                        set(state => ({
+                            tasks: state.tasks.filter(t => t.id !== payload.old.id),
+                            trashTasks: state.trashTasks.filter(t => t.id !== payload.old.id)
+                        }))
+                    }
+
+                    clearTimeout(debounceTimer)
+                    debounceTimer = setTimeout(() => {
+                        const { syncingIds } = get()
+                        if (syncingIds.size === 0) {
+                            get().fetchTasks()
+                        }
+                    }, 3000)
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'subtasks' },
+                () => {
                     clearTimeout(debounceTimer)
                     debounceTimer = setTimeout(() => {
                         get().fetchTasks()
-                    }, 500)
+                    }, 1000)
                 }
             )
             .subscribe()
@@ -626,146 +567,5 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             clearTimeout(debounceTimer)
             supabase.removeChannel(channel)
         }
-    },
-
-    // Subtask methods
-    addSubtask: async (taskId, title) => {
-        const task = get().tasks.find(t => t.id === taskId)
-        if (!task) return
-
-        const nextOrder = (task.subtasks?.length || 0)
-
-        const { data, error } = await supabase
-            .from('subtasks')
-            .insert([{
-                task_id: taskId,
-                title,
-                completed: false,
-                order: nextOrder
-            }])
-            .select()
-            .single()
-
-        if (error) {
-            console.error('Error adding subtask:', error)
-        } else {
-            set(state => ({
-                tasks: state.tasks.map(t =>
-                    t.id === taskId
-                        ? { ...t, subtasks: [...(t.subtasks || []), data] }
-                        : t
-                )
-            }))
-        }
-    },
-
-    toggleSubtask: async (subtaskId) => {
-        const task = get().tasks.find(t => t.subtasks?.some(st => st.id === subtaskId))
-        if (!task) return
-
-        const subtask = task.subtasks?.find(st => st.id === subtaskId)
-        if (!subtask) return
-
-        const newCompleted = !subtask.completed
-
-        const { error } = await supabase
-            .from('subtasks')
-            .update({ completed: newCompleted })
-            .eq('id', subtaskId)
-
-        if (error) {
-            console.error('Error toggling subtask:', error)
-        } else {
-            set(state => ({
-                tasks: state.tasks.map(t =>
-                    t.id === task.id
-                        ? {
-                            ...t,
-                            subtasks: t.subtasks?.map(st =>
-                                st.id === subtaskId ? { ...st, completed: newCompleted } : st
-                            )
-                        }
-                        : t
-                )
-            }))
-        }
-    },
-
-    deleteSubtask: async (subtaskId) => {
-        const task = get().tasks.find(t => t.subtasks?.some(st => st.id === subtaskId))
-        if (!task) return
-
-        const { error } = await supabase
-            .from('subtasks')
-            .delete()
-            .eq('id', subtaskId)
-
-        if (error) {
-            console.error('Error deleting subtask:', error)
-        } else {
-            set(state => ({
-                tasks: state.tasks.map(t =>
-                    t.id === task.id
-                        ? { ...t, subtasks: t.subtasks?.filter(st => st.id !== subtaskId) }
-                        : t
-                )
-            }))
-        }
-    },
-
-    updateSubtask: async (subtaskId, title) => {
-        const task = get().tasks.find(t => t.subtasks?.some(st => st.id === subtaskId))
-        if (!task) return
-
-        const { error } = await supabase
-            .from('subtasks')
-            .update({ title })
-            .eq('id', subtaskId)
-
-        if (error) {
-            console.error('Error updating subtask:', error)
-        } else {
-            set(state => ({
-                tasks: state.tasks.map(t =>
-                    t.id === task.id
-                        ? {
-                            ...t,
-                            subtasks: t.subtasks?.map(st =>
-                                st.id === subtaskId ? { ...st, title } : st
-                            )
-                        }
-                        : t
-                )
-            }))
-        }
-    },
-
-
-    reorderSubtasks: async (taskId, newSubtasks) => {
-        // 1. Optimistic update
-        set(state => ({
-            tasks: state.tasks.map(t =>
-                t.id === taskId
-                    ? { ...t, subtasks: newSubtasks }
-                    : t
-            )
-        }))
-
-        // 2. Persist to Supabase
-        // Update each subtask's order individually
-        Promise.all(
-            newSubtasks.map((subtask, index) =>
-                supabase
-                    .from('subtasks')
-                    .update({ order: index })
-                    .eq('id', subtask.id)
-            )
-        ).then(results => {
-            const errors = results.filter(r => r.error)
-            if (errors.length > 0) {
-                console.error('Error reordering subtasks:', errors[0].error)
-                // Revert or fetchTasks on error could be added here
-            }
-        })
     }
 }))
