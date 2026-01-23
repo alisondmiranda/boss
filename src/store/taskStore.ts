@@ -37,7 +37,7 @@ interface TaskState {
     pendingSectorUpdates: Record<string, string>
 
     setFilter: (sectorId: string | null) => void
-    fetchTasks: () => Promise<void>
+    fetchTasks: (isBackgroundUpdate?: boolean) => Promise<void>
     addTask: (title: any, sectors?: any, dueAt?: any, recurrence?: any, details?: any, subtasks?: any[]) => Promise<void>
     updateTask: (id: string, updates: Partial<Task>) => Promise<void>
     updateTaskWithSubtasks: (id: string, updates: Partial<Task>, subtasks: any[]) => Promise<void>
@@ -73,8 +73,16 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     setFilter: (sectorId) => set({ filter: sectorId }),
 
-    fetchTasks: async () => {
-        set({ loading: true })
+    fetchTasks: async (isBackgroundUpdate = false) => {
+        const { isSyncing, syncingIds } = get()
+
+        // CRITICAL FIX #1: Se estamos sincronizando (drag em andamento), 
+        // ignorar COMPLETAMENTE atualizações de background para evitar race conditions
+        if (isBackgroundUpdate && (isSyncing || syncingIds.size > 0)) {
+            return // Ignora silenciosamente - a ordem local está correta
+        }
+
+        if (!isBackgroundUpdate) set({ loading: true })
         try {
             const user = (await supabase.auth.getUser()).data.user
             if (!user) return
@@ -98,11 +106,51 @@ export const useTaskStore = create<TaskState>((set, get) => ({
                     .sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
             }))
 
-            const tasks = tasksData.filter((t: any) => !t.trash_date)
+            const fetchedTasks = tasksData.filter((t: any) => !t.trash_date)
             const trashTasks = tasksData.filter((t: any) => t.trash_date)
 
-            const { pendingSectorUpdates } = get()
-            const mergedTasks = tasks.map((t: any) => ({
+            const { tasks: currentTasks, pendingSectorUpdates } = get()
+
+            // CRITICAL FIX #2: Preservar ORDEM local quando há syncingIds
+            // Isso evita que o servidor sobrescreva a posição do item arrastado
+            const currentSyncingIds = get().syncingIds
+            if (currentSyncingIds.size > 0) {
+                // Manter ordem local, apenas atualizar conteúdo de tarefas não-sincronizando
+                const serverTasksMap = new Map(fetchedTasks.map((t: any) => [t.id, t]))
+                const serverIds = new Set(fetchedTasks.map((t: any) => t.id))
+
+                // Filtrar tarefas locais que ainda existem no servidor
+                const mergedTasks = currentTasks
+                    .filter(t => serverIds.has(t.id))
+                    .map(localTask => {
+                        if (currentSyncingIds.has(localTask.id)) {
+                            // Tarefa sincronizando: preservar estado local completo
+                            return localTask
+                        }
+                        // Tarefa normal: usar dados do servidor mas manter ordem local
+                        const serverTask = serverTasksMap.get(localTask.id)
+                        return {
+                            ...serverTask,
+                            order: localTask.order, // Preservar ordem local
+                            sector: pendingSectorUpdates[localTask.id] || serverTask?.sector
+                        }
+                    })
+
+                // Adicionar novas tarefas do servidor ao final
+                const localIds = new Set(currentTasks.map(t => t.id))
+                const newTasks = fetchedTasks
+                    .filter((t: any) => !localIds.has(t.id))
+                    .map((t: any) => ({
+                        ...t,
+                        sector: pendingSectorUpdates[t.id] || t.sector
+                    }))
+
+                set({ tasks: [...mergedTasks, ...newTasks], trashTasks, loading: false })
+                return
+            }
+
+            // Caminho normal: nenhuma sync em andamento, usar dados do servidor
+            const mergedTasks = fetchedTasks.map((t: any) => ({
                 ...t,
                 sector: pendingSectorUpdates[t.id] || t.sector
             }))
@@ -407,12 +455,13 @@ export const useTaskStore = create<TaskState>((set, get) => ({
                 const { syncingIds } = get()
                 reorderingIds.forEach(id => syncingIds.delete(id))
                 set({ syncingIds: new Set(syncingIds), isSyncing: false })
-            }, 1000)
+            }, 2000)
         }
     },
 
 
     addSubtask: async (taskId, title) => {
+        set({ isSyncing: true })
         try {
             const { data: subtasks } = await supabase.from('subtasks').select('order').eq('task_id', taskId)
             const maxOrder = subtasks && subtasks.length > 0 ? Math.max(...subtasks.map(s => s.order || 0)) : -1
@@ -427,6 +476,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             await get().fetchTasks()
         } catch (error) {
             console.error('Error adding subtask:', error)
+        } finally {
+            setTimeout(() => set({ isSyncing: false }), 1000)
         }
     },
 
@@ -439,7 +490,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
             const { syncingIds } = get()
             syncingIds.add(subtask.task_id)
-            set({ syncingIds: new Set(syncingIds) })
+            set({ syncingIds: new Set(syncingIds), isSyncing: true })
 
             await supabase.from('subtasks').update({ status: newStatus }).eq('id', subtaskId)
 
@@ -458,29 +509,34 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             setTimeout(() => {
                 const { syncingIds } = get()
                 syncingIds.delete(subtask.task_id)
-                set({ syncingIds: new Set(syncingIds) })
-            }, 1000)
+                set({ syncingIds: new Set(syncingIds), isSyncing: false })
+            }, 2000)
         } catch (error) {
             console.error('Error toggling subtask:', error)
         }
     },
 
     deleteSubtask: async (subtaskId) => {
+        set({ isSyncing: true })
         try {
             await supabase.from('subtasks').delete().eq('id', subtaskId)
             await get().fetchTasks()
-
         } catch (error) {
             console.error('Error deleting subtask:', error)
+        } finally {
+            setTimeout(() => set({ isSyncing: false }), 2000)
         }
     },
 
     updateSubtask: async (subtaskId, title, details) => {
+        set({ isSyncing: true })
         try {
             await supabase.from('subtasks').update({ title, details }).eq('id', subtaskId)
             await get().fetchTasks()
         } catch (error) {
             console.error('Error updating subtask:', error)
+        } finally {
+            setTimeout(() => set({ isSyncing: false }), 2000)
         }
     },
 
@@ -517,7 +573,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
                 const { syncingIds } = get()
                 syncingIds.delete(taskId)
                 set({ syncingIds: new Set(syncingIds), isSyncing: false })
-            }, 1000)
+            }, 2000)
         }
     },
 
@@ -532,12 +588,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'tasks' },
                 () => {
-                    // Simple pattern: skip if we're syncing locally
-                    if (get().isSyncing) return
-
                     clearTimeout(debounceTimer)
                     debounceTimer = setTimeout(() => {
-                        get().fetchTasks()
+                        get().fetchTasks(true)
                     }, 500)
                 }
             )
@@ -545,11 +598,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'subtasks' },
                 () => {
-                    if (get().isSyncing) return
-
                     clearTimeout(debounceTimer)
                     debounceTimer = setTimeout(() => {
-                        get().fetchTasks()
+                        get().fetchTasks(true)
                     }, 500)
                 }
             )
@@ -560,5 +611,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             supabase.removeChannel(channel)
         }
     }
+
+
 
 }))
