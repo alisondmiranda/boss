@@ -12,61 +12,106 @@ export interface SubtaskSlice {
 
 export const createSubtaskSlice: StateCreator<TaskState, [], [], SubtaskSlice> = (set, get) => ({
     addSubtask: async (taskId, title) => {
-        set({ isSyncing: true })
-        try {
-            const { data: subtasks } = await supabase.from('subtasks').select('order').eq('task_id', taskId)
-            const maxOrder = subtasks && subtasks.length > 0 ? Math.max(...subtasks.map(s => s.order || 0)) : -1
+        const { tasks, syncingIds } = get()
+        const tempId = `temp-${Date.now()}`
 
-            const { error } = await supabase.from('subtasks').insert([{
+        // Find max order from local state
+        const task = tasks.find(t => t.id === taskId)
+        const maxOrder = task?.subtasks && task.subtasks.length > 0
+            ? Math.max(...task.subtasks.map(s => s.order || 0))
+            : -1
+
+        // OPTIMISTIC UPDATE - Instant UI feedback
+        const newSubtask = {
+            id: tempId,
+            title,
+            task_id: taskId,
+            completed: false,
+            status: 'todo' as 'todo' | 'done',
+            order: maxOrder + 1,
+            created_at: new Date().toISOString()
+        }
+
+        syncingIds.add(taskId)
+        const newTasks = tasks.map(t => {
+            if (t.id === taskId) {
+                return {
+                    ...t,
+                    subtasks: [...(t.subtasks || []), newSubtask]
+                }
+            }
+            return t
+        })
+        set({ tasks: newTasks, syncingIds: new Set(syncingIds), isSyncing: true })
+
+        // SYNC TO DATABASE - Background
+        try {
+            await supabase.from('subtasks').insert([{
                 task_id: taskId,
                 title,
                 order: maxOrder + 1
             }])
 
-            if (error) {
-                console.error('[DATABASE] Error adding subtask:', error)
-            }
-
+            // Fetch real data to get the actual ID
             await get().fetchTasks()
         } catch (error) {
-            console.error('Error adding subtask:', error)
+            console.error('[DATABASE] Error adding subtask:', error)
+            // Rollback on error
+            await get().fetchTasks()
         } finally {
-            setTimeout(() => set({ isSyncing: false }), 1000)
+            setTimeout(() => {
+                const { syncingIds } = get()
+                syncingIds.delete(taskId)
+                set({ syncingIds: new Set(syncingIds), isSyncing: false })
+            }, 300)
         }
     },
 
     toggleSubtask: async (subtaskId) => {
-        try {
-            const { data: subtask } = await supabase.from('subtasks').select('status, task_id').eq('id', subtaskId).single()
-            if (!subtask) return
+        // Find the subtask in local state for optimistic update
+        const { tasks, syncingIds } = get()
+        let taskId: string | null = null
+        let currentCompleted: boolean | undefined = undefined
 
-            const newStatus = subtask.status === 'todo' ? 'done' : 'todo'
+        for (const t of tasks) {
+            const st = t.subtasks?.find(s => s.id === subtaskId)
+            if (st) {
+                taskId = t.id
+                currentCompleted = st.completed
+                break
+            }
+        }
 
-            const { syncingIds } = get()
-            syncingIds.add(subtask.task_id)
-            set({ syncingIds: new Set(syncingIds), isSyncing: true })
+        if (!taskId || currentCompleted === undefined) return
 
-            await supabase.from('subtasks').update({ status: newStatus }).eq('id', subtaskId)
+        const newCompleted = !currentCompleted
 
-            const { tasks } = get()
-            const newTasks = tasks.map(t => {
-                if (t.id === subtask.task_id) {
-                    return {
-                        ...t,
-                        subtasks: t.subtasks.map(st => st.id === subtaskId ? { ...st, status: newStatus as any, completed: newStatus === 'done' } : st)
-                    }
+        // OPTIMISTIC UPDATE - Instant UI feedback
+        syncingIds.add(taskId)
+        const newTasks = tasks.map(t => {
+            if (t.id === taskId) {
+                return {
+                    ...t,
+                    subtasks: t.subtasks.map(st => st.id === subtaskId ? { ...st, completed: newCompleted, status: (newCompleted ? 'done' : 'todo') as 'done' | 'todo' } : st)
                 }
-                return t
-            })
-            set({ tasks: newTasks })
+            }
+            return t
+        })
+        set({ tasks: newTasks, syncingIds: new Set(syncingIds), isSyncing: true })
 
-            setTimeout(() => {
-                const { syncingIds } = get()
-                syncingIds.delete(subtask.task_id)
-                set({ syncingIds: new Set(syncingIds), isSyncing: false })
-            }, 2000)
+        // SYNC TO DATABASE - Background
+        try {
+            await supabase.from('subtasks').update({ completed: newCompleted }).eq('id', subtaskId)
         } catch (error) {
             console.error('Error toggling subtask:', error)
+            // Rollback on error
+            await get().fetchTasks()
+        } finally {
+            setTimeout(() => {
+                const { syncingIds } = get()
+                syncingIds.delete(taskId!)
+                set({ syncingIds: new Set(syncingIds), isSyncing: false })
+            }, 500)
         }
     },
 
