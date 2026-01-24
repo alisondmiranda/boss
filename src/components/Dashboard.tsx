@@ -11,18 +11,13 @@ import { useAuthStore } from '../store/authStore'
 import { useTaskStore, Task } from '../store/taskStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { SettingsModal } from './SettingsModal'
-import { sendMessageToGemini, GeminiResponse } from '../lib/gemini'
 import { RecurrenceRule } from './RecurrencePicker'
 import { TaskFormModal } from './TaskFormModal'
-import { TaskItem } from './TaskItem'
+import { TaskItem } from './tasks/TaskItem'
 import { RightSidebar } from './RightSidebar'
 import { useUIStore } from '../store/uiStore'
-
-
-interface ChatMessage {
-    role: 'user' | 'assistant'
-    content: string
-}
+import { useTaskFiltering } from '../hooks/useTaskFiltering'
+import { useChatAssistant } from '../hooks/useChatAssistant'
 
 import { useToast } from '../store/toastStore'
 import { ToastContainer } from './ToastContainer'
@@ -41,14 +36,15 @@ export function Dashboard() {
     const { sectors, userProfile, sortBy: sortBySettings } = useSettingsStore()
     const { addToast } = useToast()
 
-    const [showSettings, setShowSettings] = useState(false)
-    const [settingsTab, setSettingsTab] = useState<'api' | 'sectors' | 'profile'>('api')
-    const [filter, setFilter] = useState<string[]>([])
-    const [searchQuery, setSearchQuery] = useState('')
-    const [sortBy, setSortBy] = useState<'dueDate' | 'createdAt' | 'name' | 'manual'>(() => {
-        const saved = localStorage.getItem('boss-task-sort')
-        return (saved as 'dueDate' | 'createdAt' | 'name' | 'manual') || 'dueDate'
-    })
+    // State moved to hooks
+    const {
+        filter, setFilter, searchQuery, setSearchQuery, sortBy, handleSortChange,
+        toggleFilter, sortedSectors, sortedTasks: sortedTasksFromHook
+    } = useTaskFiltering(tasks, sectors, sortBySettings)
+
+    const {
+        chatInput, setChatInput, chatMessages, isThinking, chatEndRef, handleChatSubmit
+    } = useChatAssistant(async (title, sectors) => { await addTask(title, sectors) })
 
     // Sidebar State
     const [sidebarOpen] = useState(true) // For Mobile Drawer
@@ -56,8 +52,14 @@ export function Dashboard() {
     const isSidebarExpanded = isLeftSidebarExpanded
     const setIsSidebarExpanded = setLeftSidebarExpanded
     const [sidebarMode, setSidebarMode] = useState<'nav' | 'chat' | 'trash'>('nav')
-    const [showDone, setShowDone] = useState(false)
     const [menuOpen, setMenuOpen] = useState(false)
+    const [showDone, setShowDone] = useState(false)
+
+    // Modal States
+    const [showSettings, setShowSettings] = useState(false)
+    const [settingsTab, setSettingsTab] = useState<'api' | 'sectors' | 'profile'>('api')
+    const [isTaskFormOpen, setIsTaskFormOpen] = useState(false)
+    const [initialOpenPicker, setInitialOpenPicker] = useState<'date' | 'recurrence' | null>(null)
 
 
     // Task Context Menu State
@@ -105,9 +107,6 @@ export function Dashboard() {
         setSettingsTab(tab)
         setSettingsOpenCreation(openCreation)
         setShowSettings(true)
-        // Reset creating state after opening (SettingsModal handles it on mount/update)
-        // Actually, we should keep it true while open if we want it to work on mount,
-        // but since SettingsModal uses it in useEffect dependent on isOpen, it's fine.
     }
 
     // Listen for custom event to open sectors settings
@@ -116,14 +115,6 @@ export function Dashboard() {
         window.addEventListener('open-sectors-settings', handleOpenSectors)
         return () => window.removeEventListener('open-sectors-settings', handleOpenSectors)
     }, [])
-
-    // Chat State
-    const [chatInput, setChatInput] = useState('')
-    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-        { role: 'assistant', content: 'Olá! Sou o Boss. Como posso ajudar a organizar sua vida hoje?' }
-    ])
-    const [isThinking, setIsThinking] = useState(false)
-    const chatEndRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         fetchTasks()
@@ -136,10 +127,6 @@ export function Dashboard() {
         }
     }, [])
 
-    useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [chatMessages])
-
     // Dynamic Greeting
     const getGreeting = () => {
         const hour = new Date().getHours()
@@ -151,77 +138,15 @@ export function Dashboard() {
     }
 
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
-    const [isTaskFormOpen, setIsTaskFormOpen] = useState(false)
     const [editingTask, setEditingTask] = useState<Task | null>(null)
-    const [initialOpenPicker, setInitialOpenPicker] = useState<'date' | 'recurrence' | null>(null)
-
-    // Updated Filtering Logic
-    const toggleFilter = (sectorId: string) => {
-        setFilter(prev => {
-            if (prev.includes(sectorId)) {
-                return prev.filter(id => id !== sectorId)
-            } else {
-                return [...prev, sectorId]
-            }
-        })
-    }
 
     const doneTasksCount = useMemo(() => tasks.filter(t => t.status === 'done').length, [tasks])
     const trashTasksCount = useMemo(() => trashTasks.length, [trashTasks])
 
-    const sortedSectors = useMemo(() => {
-        return [...sectors].sort((a, b) => {
-            if (sortBySettings === 'alpha') return a.label.localeCompare(b.label)
-            if (sortBySettings === 'created') return (new Date(b.createdAt || 0).getTime()) - (new Date(a.createdAt || 0).getTime())
-            return 0
-        })
-    }, [sectors, sortBySettings])
-
-    const filteredTasks = useMemo(() => tasks.filter(t => {
-        // Filter by sector
-        if (filter.length > 0) {
-            const taskSectors = Array.isArray(t.sector) ? t.sector : (t.sector?.toString().split(',').filter(Boolean) || [])
-            if (!taskSectors.some((s: string) => filter.includes(s))) return false
-        }
-        // Filter by search query
-        if (searchQuery.trim()) {
-            return t.title.toLowerCase().includes(searchQuery.toLowerCase())
-        }
-        return true
-    }), [tasks, filter, searchQuery])
-
-    // Sorted tasks
-    const sortedTasks = useMemo(() => [...filteredTasks].sort((a, b) => {
-        switch (sortBy) {
-            case 'dueDate':
-                // Tasks with due date first, sorted by date (earliest first)
-                // Then tasks without due date, sorted by creation
-                if (a.due_at && b.due_at) {
-                    return new Date(a.due_at).getTime() - new Date(b.due_at).getTime()
-                }
-                if (a.due_at) return -1
-                if (b.due_at) return 1
-                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            case 'createdAt':
-                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            case 'name':
-                return a.title.localeCompare(b.title, 'pt-BR')
-            case 'manual':
-                return (a.order ?? 0) - (b.order ?? 0)
-            default:
-                return 0
-        }
-    }), [filteredTasks, sortBy])
-
+    // Use sorted tasks from hook
+    const sortedTasks = sortedTasksFromHook
     const pendingTasks = useMemo(() => sortedTasks.filter(t => t.status !== 'done'), [sortedTasks])
     const doneTasks = useMemo(() => sortedTasks.filter(t => t.status === 'done'), [sortedTasks])
-
-    const handleSortChange = (newSort: 'dueDate' | 'createdAt' | 'name' | 'manual') => {
-        setSortBy(newSort)
-        localStorage.setItem('boss-task-sort', newSort)
-    }
-
-
 
     const handleAddTask = async (title: string, inputSectors: string[], dueAt: Date | null, recurrence: RecurrenceRule | null, details: string | null, subtasks: any[]) => {
         try {
@@ -325,28 +250,6 @@ export function Dashboard() {
                     onClick: () => toggleTask(id, 'done') // Reverte de volta para todo
                 })
             }, 150)
-        }
-    }
-
-    const handleChatSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!chatInput.trim() || isThinking) return
-
-        const userMessage = chatInput.trim()
-        setChatInput('')
-        setChatMessages(prev => [...prev, { role: 'user', content: userMessage }])
-        setIsThinking(true)
-
-        try {
-            const response: GeminiResponse = await sendMessageToGemini(userMessage)
-            if (response.action === 'add' && response.task) {
-                await addTask(response.task.title, response.task.sector)
-            }
-            setChatMessages(prev => [...prev, { role: 'assistant', content: response.message }])
-        } catch (error) {
-            setChatMessages(prev => [...prev, { role: 'assistant', content: 'Erro ao conectar com a IA.' }])
-        } finally {
-            setIsThinking(false)
         }
     }
 
@@ -566,7 +469,7 @@ export function Dashboard() {
 
                 {/* Sidebar Footer */}
                 <div className="mt-auto px-6 py-6 border-t border-outline-variant/30 bg-surface-variant/5">
-                    <p className="text-[10px] text-on-surface-variant/60 font-bold uppercase tracking-widest pl-1">Boss v1.4.0</p>
+                    <p className="text-[10px] text-on-surface-variant/60 font-bold uppercase tracking-widest pl-1">Boss v1.5.0</p>
                 </div>
             </motion.aside>
 

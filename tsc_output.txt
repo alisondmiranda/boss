@@ -1,1 +1,0 @@
-src/components/Dashboard.tsx(184,35): error TS7006: Parameter 's' implicitly has an 'any' type.
