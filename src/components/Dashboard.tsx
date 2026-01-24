@@ -180,8 +180,8 @@ export function Dashboard() {
     const filteredTasks = useMemo(() => tasks.filter(t => {
         // Filter by sector
         if (filter.length > 0) {
-            const taskSectors = Array.isArray(t.sector) ? t.sector : [t.sector]
-            if (!taskSectors.some(s => filter.includes(s))) return false
+            const taskSectors = Array.isArray(t.sector) ? t.sector : (t.sector?.toString().split(',').filter(Boolean) || [])
+            if (!taskSectors.some((s: string) => filter.includes(s))) return false
         }
         // Filter by search query
         if (searchQuery.trim()) {
@@ -555,7 +555,7 @@ export function Dashboard() {
 
                 {/* Sidebar Footer */}
                 <div className="mt-auto px-6 py-6 border-t border-outline-variant/30 bg-surface-variant/5">
-                    <p className="text-[10px] text-on-surface-variant/60 font-bold uppercase tracking-widest pl-1">Boss v1.3.8</p>
+                    <p className="text-[10px] text-on-surface-variant/60 font-bold uppercase tracking-widest pl-1">Boss v1.3.9</p>
                 </div>
             </motion.aside>
 
@@ -1050,7 +1050,7 @@ export function Dashboard() {
                                     sectors={sortedSectors}
                                     mode={editingTask ? 'edit' : 'create'}
                                     initialTitle={editingTask?.title}
-                                    initialSectors={editingTask ? (Array.isArray(editingTask.sector) ? editingTask.sector : [editingTask.sector]) : []}
+                                    initialSectors={editingTask ? (Array.isArray(editingTask.sector) ? editingTask.sector : (editingTask.sector?.toString().split(',').filter(Boolean) || [])) : []}
                                     initialDueAt={editingTask?.due_at ? new Date(editingTask.due_at) : null}
                                     initialDetails={editingTask?.details}
                                     initialSubtasks={editingTask?.subtasks || []}
@@ -1080,7 +1080,7 @@ export function Dashboard() {
                                             const rawSector = task.sector
                                             const taskSectors = Array.isArray(rawSector)
                                                 ? rawSector.filter(Boolean)
-                                                : (rawSector ? [rawSector] : [])
+                                                : (rawSector?.toString().split(',').filter(Boolean) || [])
 
                                             return (
                                                 <TaskItem
@@ -1185,7 +1185,7 @@ export function Dashboard() {
                                                         const rawSector = task.sector
                                                         const taskSectors = Array.isArray(rawSector)
                                                             ? rawSector.filter(Boolean)
-                                                            : (rawSector ? [rawSector] : [])
+                                                            : (rawSector?.toString().split(',').filter(Boolean) || [])
 
                                                         return (
                                                             <TaskItem

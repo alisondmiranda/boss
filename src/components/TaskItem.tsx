@@ -50,6 +50,142 @@ interface TaskItemProps {
     sortBy?: 'dueDate' | 'createdAt' | 'name' | 'manual'
 }
 
+/* 
+ * SubtaskItem Component
+ * Extracted to allow individual drag controls and proper reorder behavior
+ */
+interface SubtaskItemProps {
+    subtask: any
+    expandedSubtaskDetails: Set<string>
+    toggleSubtaskDetails: (id: string) => void
+    handleToggleSubtask: (id: string) => void
+    editingSubtaskId: string | null
+    editSubtaskTitle: string
+    setEditSubtaskTitle: (val: string) => void
+    handleSubtaskEditSave: () => void
+    handleSubtaskEditStart: (id: string, title: string) => void
+    handleDeleteSubtask: (id: string) => void
+    subtaskDetailsMap: Record<string, string>
+    handleSubtaskDetailsSave: (id: string, val: string) => void
+}
+
+function SubtaskItem({
+    subtask,
+    expandedSubtaskDetails,
+    toggleSubtaskDetails,
+    handleToggleSubtask,
+    editingSubtaskId,
+    editSubtaskTitle,
+    setEditSubtaskTitle,
+    handleSubtaskEditSave,
+    handleSubtaskEditStart,
+    handleDeleteSubtask,
+    subtaskDetailsMap,
+    handleSubtaskDetailsSave
+}: SubtaskItemProps) {
+    const dragControls = useDragControls()
+
+    return (
+        <Reorder.Item
+            value={subtask}
+            dragListener={false}
+            dragControls={dragControls}
+            whileDrag={{
+                scale: 1.02,
+                boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
+                zIndex: 50
+            }}
+            transition={{ type: "spring", stiffness: 600, damping: 40 }}
+            className="group/subtask bg-surface rounded-md relative select-none"
+            onClick={(e) => e.stopPropagation()}
+        >
+            <div className="flex items-center gap-2 text-[13px] py-0.5">
+                {/* Handle */}
+                <div
+                    onPointerDown={(e) => dragControls.start(e)}
+                    className="p-1 -ml-1 cursor-grab active:cursor-grabbing hover:bg-surface-variant/50 rounded transition-colors opacity-0 group-hover/subtask:opacity-100"
+                >
+                    <GripVertical className="w-3.5 h-3.5 text-on-surface-variant/40" />
+                </div>
+
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        toggleSubtaskDetails(subtask.id)
+                    }}
+                    className={`p-0.5 rounded transition-all ${expandedSubtaskDetails.has(subtask.id) ? 'text-primary' : 'text-on-surface-variant/40 hover:text-on-surface-variant'}`}
+                    title="Detalhes da subtarefa"
+                >
+                    <ChevronRight className={`w-3 h-3 transition-transform ${expandedSubtaskDetails.has(subtask.id) ? 'rotate-90' : ''}`} />
+                </button>
+
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        handleToggleSubtask(subtask.id)
+                    }}
+                    className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${subtask.completed ? 'bg-primary border-primary text-on-primary' : 'border-outline/40 hover:border-primary'}`}
+                >
+                    {subtask.completed && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                </button>
+
+                {editingSubtaskId === subtask.id ? (
+                    <input
+                        autoFocus
+                        value={editSubtaskTitle}
+                        onChange={(e) => setEditSubtaskTitle(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        onBlur={handleSubtaskEditSave}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSubtaskEditSave()}
+                        className="flex-1 bg-transparent border-none text-sm text-on-surface focus:outline-none py-1"
+                    />
+                ) : (
+                    <span
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            handleSubtaskEditStart(subtask.id, subtask.title)
+                        }}
+                        className={`flex-1 cursor-text ${subtask.completed ? 'text-on-surface-variant/50 line-through' : 'text-on-surface hover:text-primary transition-colors'}`}
+                    >
+                        {subtask.title}
+                    </span>
+                )}
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteSubtask(subtask.id)
+                    }}
+                    className="opacity-0 group-hover/subtask:opacity-100 p-1 text-on-surface-variant hover:text-error transition-all"
+                >
+                    <X className="w-3.5 h-3.5" />
+                </button>
+            </div>
+
+            <AnimatePresence>
+                {expandedSubtaskDetails.has(subtask.id) && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.12 }}
+                        className="overflow-hidden"
+                    >
+                        <div className="ml-8 mr-2 mb-2">
+                            <textarea
+                                value={subtaskDetailsMap[subtask.id] || ''}
+                                onChange={(e) => handleSubtaskDetailsSave(subtask.id, e.target.value)}
+                                placeholder="Adicionar detalhes..."
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-full bg-surface-variant/15 rounded-md p-2 text-[11px] text-on-surface placeholder:text-on-surface-variant/40 resize-none border border-transparent focus:border-primary/20 focus:outline-none transition-all min-h-[50px]"
+                            />
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </Reorder.Item>
+    )
+}
+
 export function TaskItem({
     task, taskSectors, sectors, toggleTask, toggleTaskSector,
     setTaskMenuOpen, taskMenuOpen, handleMoveToTrash, updateTask, onEditClick, onRecurrenceClick,
@@ -275,10 +411,7 @@ export function TaskItem({
                 boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
                 zIndex: 50,
             }}
-            layout="position"
-            transition={{
-                layout: { duration: 0.12 }
-            }}
+            transition={{ type: "spring", stiffness: 600, damping: 40 }}
             className={`bg-surface border border-outline-variant/30 rounded-[18px] flex flex-col group relative shadow-sm select-none hover:border-primary/60 hover:shadow-md ${task.status === 'done' ? 'opacity-75' : ''} ${animationState !== 'idle' ? 'pointer-events-none' : ''}`}
             ref={cardRef}
             onClick={() => {
@@ -560,18 +693,6 @@ export function TaskItem({
                                             <div className="pt-2 mt-1 border-t border-outline-variant/30 px-2">
                                                 <button
                                                     onClick={(e) => {
-                                                        // Assuming we have a way to open settings or create tag. 
-                                                        // For now just console log or maybe implement later.
-                                                        // Ideally this should open the settings modal on sectors tab.
-                                                        // But TaskItem doesn't have access to openSettings from Dashboard easily unless passed down.
-                                                        // Wait, we don't have openSettings prop in TaskItemProps?
-                                                        // The user instructions say "Adicione a opção fixa ... ".
-                                                        // I will trigger a custom event or just assume the user will implement the logic.
-                                                        // Actually, I can't easily access openSettings unless I prop drill it.
-                                                        // Let's check TaskItem props for 'openSettings' or similar... No.
-                                                        // I will add the button purely visual for now or use a placeholder alerts/toast.
-                                                        // Wait, I can't fulfill the "Create" action properly without the function.
-                                                        // But I MUST implement the UI.
                                                         e.stopPropagation()
                                                         // Since I cannot open settings here directly, I will just close menu.
                                                         setTaskMenuOpen(null)
@@ -790,90 +911,21 @@ export function TaskItem({
                                                     className="space-y-1"
                                                 >
                                                     {task.subtasks.map(subtask => (
-                                                        <Reorder.Item
+                                                        <SubtaskItem
                                                             key={subtask.id}
-                                                            value={subtask}
-                                                            className="group/subtask bg-surface rounded-md"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        >
-                                                            <div className="flex items-center gap-2 text-[13px] py-0.5">
-                                                                <GripVertical className="w-3.5 h-3.5 text-on-surface-variant/20 cursor-grab active:cursor-grabbing opacity-0 group-hover/subtask:opacity-100 transition-opacity" />
-
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation()
-                                                                        toggleSubtaskDetails(subtask.id)
-                                                                    }}
-                                                                    className={`p-0.5 rounded transition-all ${expandedSubtaskDetails.has(subtask.id) ? 'text-primary' : 'text-on-surface-variant/40 hover:text-on-surface-variant'}`}
-                                                                    title="Detalhes da subtarefa"
-                                                                >
-                                                                    <ChevronRight className={`w-3 h-3 transition-transform ${expandedSubtaskDetails.has(subtask.id) ? 'rotate-90' : ''}`} />
-                                                                </button>
-
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation()
-                                                                        handleToggleSubtask(subtask.id)
-                                                                    }}
-                                                                    className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${subtask.completed ? 'bg-primary border-primary text-on-primary' : 'border-outline/40 hover:border-primary'}`}
-                                                                >
-                                                                    {subtask.completed && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                                                                </button>
-
-                                                                {editingSubtaskId === subtask.id ? (
-                                                                    <input
-                                                                        autoFocus
-                                                                        value={editSubtaskTitle}
-                                                                        onChange={(e) => setEditSubtaskTitle(e.target.value)}
-                                                                        onClick={(e) => e.stopPropagation()}
-                                                                        onBlur={handleSubtaskEditSave}
-                                                                        onKeyDown={(e) => e.key === 'Enter' && handleSubtaskEditSave()}
-                                                                        className="flex-1 bg-transparent border-none text-sm text-on-surface focus:outline-none py-1"
-                                                                    />
-                                                                ) : (
-                                                                    <span
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation()
-                                                                            handleSubtaskEditStart(subtask.id, subtask.title)
-                                                                        }}
-                                                                        className={`flex-1 cursor-text ${subtask.completed ? 'text-on-surface-variant/50 line-through' : 'text-on-surface hover:text-primary transition-colors'}`}
-                                                                    >
-                                                                        {subtask.title}
-                                                                    </span>
-                                                                )}
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation()
-                                                                        handleDeleteSubtask(subtask.id)
-                                                                    }}
-                                                                    className="opacity-0 group-hover/subtask:opacity-100 p-1 text-on-surface-variant hover:text-error transition-all"
-                                                                >
-                                                                    <X className="w-3.5 h-3.5" />
-                                                                </button>
-                                                            </div>
-
-                                                            <AnimatePresence>
-                                                                {expandedSubtaskDetails.has(subtask.id) && (
-                                                                    <motion.div
-                                                                        initial={{ height: 0, opacity: 0 }}
-                                                                        animate={{ height: 'auto', opacity: 1 }}
-                                                                        exit={{ height: 0, opacity: 0 }}
-                                                                        transition={{ duration: 0.12 }}
-                                                                        className="overflow-hidden"
-                                                                    >
-                                                                        <div className="ml-8 mr-2 mb-2">
-                                                                            <textarea
-                                                                                value={subtaskDetailsMap[subtask.id] || ''}
-                                                                                onChange={(e) => handleSubtaskDetailsSave(subtask.id, e.target.value)}
-                                                                                placeholder="Adicionar detalhes..."
-                                                                                onClick={(e) => e.stopPropagation()}
-                                                                                className="w-full bg-surface-variant/15 rounded-md p-2 text-[11px] text-on-surface placeholder:text-on-surface-variant/40 resize-none border border-transparent focus:border-primary/20 focus:outline-none transition-all min-h-[50px]"
-                                                                            />
-                                                                        </div>
-                                                                    </motion.div>
-                                                                )}
-                                                            </AnimatePresence>
-                                                        </Reorder.Item>
+                                                            subtask={subtask}
+                                                            expandedSubtaskDetails={expandedSubtaskDetails}
+                                                            toggleSubtaskDetails={toggleSubtaskDetails}
+                                                            handleToggleSubtask={handleToggleSubtask}
+                                                            editingSubtaskId={editingSubtaskId}
+                                                            editSubtaskTitle={editSubtaskTitle}
+                                                            setEditSubtaskTitle={setEditSubtaskTitle}
+                                                            handleSubtaskEditSave={handleSubtaskEditSave}
+                                                            handleSubtaskEditStart={handleSubtaskEditStart}
+                                                            handleDeleteSubtask={handleDeleteSubtask}
+                                                            subtaskDetailsMap={subtaskDetailsMap}
+                                                            handleSubtaskDetailsSave={handleSubtaskDetailsSave}
+                                                        />
                                                     ))}
                                                 </Reorder.Group>
                                             ) : null}
@@ -910,7 +962,6 @@ export function TaskItem({
                     </motion.div>
                 )}
             </AnimatePresence>
-        </Reorder.Item >
+        </Reorder.Item>
     )
 }
-

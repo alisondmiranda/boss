@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 export interface Subtask {
     id: string
     title: string
-    status?: 'pending' | 'done'
+    status?: 'todo' | 'done'
     completed?: boolean // For UI compatibility
     task_id: string
     created_at: string
@@ -15,7 +15,7 @@ export interface Subtask {
 export interface Task {
     id: string
     title: string
-    status: 'pending' | 'done'
+    status: 'todo' | 'done'
     sector: any // Compatibility with string and string[]
     user_id: string
     created_at: string
@@ -34,7 +34,7 @@ interface TaskState {
     isSyncing: boolean
     syncingIds: Set<string>
     filter: string | null
-    pendingSectorUpdates: Record<string, string>
+    pendingSectorUpdates: Record<string, any>
 
     setFilter: (sectorId: string | null) => void
     fetchTasks: (isBackgroundUpdate?: boolean) => Promise<void>
@@ -42,7 +42,7 @@ interface TaskState {
     updateTask: (id: string, updates: Partial<Task>) => Promise<void>
     updateTaskWithSubtasks: (id: string, updates: Partial<Task>, subtasks: any[]) => Promise<void>
     toggleTask: (id: string, currentStatus: string) => Promise<void>
-    updateTaskSector: (taskId: string, sectorIds: string) => Promise<void>
+    updateTaskSector: (taskId: string, sectorIds: any) => Promise<void>
     toggleTaskSector: (taskId: string, sectorId: string, allSectors: { id: string, label: string }[]) => Promise<void>
     moveToTrash: (id: string) => Promise<void>
     restoreTask: (id: string) => Promise<void>
@@ -100,7 +100,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
                 subtasks: (t.subtasks || [])
                     .map((s: any) => ({
                         ...s,
-                        status: s.status || (s.completed ? 'done' : 'pending'),
+                        status: s.status || (s.completed ? 'done' : 'todo'),
                         completed: s.status === 'done' || !!s.completed
                     }))
                     .sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
@@ -181,8 +181,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
                 .from('tasks')
                 .insert([{
                     title: finalTitle,
-                    status: 'pending',
-                    sector: Array.isArray(finalSectors) ? finalSectors.join(',') : (finalSectors || 'personal'),
+                    status: 'todo',
+                    sector: Array.isArray(finalSectors) ? finalSectors : (finalSectors ? [finalSectors] : ['personal']),
                     user_id: user.id,
                     due_at: dueAt instanceof Date ? dueAt.toISOString() : dueAt,
                     recurrence_id: recurrence?.id || null,
@@ -194,20 +194,48 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
             if (taskError) throw taskError
 
+            let createdSubtasks: Subtask[] = []
             if (subtasksInput.length > 0 && taskData) {
                 const subtasksToInsert = subtasksInput.map((s: any, idx: number) => ({
                     title: s.title,
-                    status: s.status || (s.completed ? 'done' : 'pending'),
+                    status: s.status || (s.completed ? 'done' : 'todo'),
                     task_id: taskData.id,
                     order: idx,
                     details: s.details
                 }))
-                await supabase.from('subtasks').insert(subtasksToInsert)
+
+                const { data: insertedSubtasks } = await supabase
+                    .from('subtasks')
+                    .insert(subtasksToInsert)
+                    .select()
+
+                if (insertedSubtasks) {
+                    createdSubtasks = insertedSubtasks.map((s: any) => ({
+                        ...s,
+                        status: s.status || (s.completed ? 'done' : 'todo'),
+                        completed: s.status === 'done' || !!s.completed
+                    }))
+                }
             }
+
+            // Manually update local state to ensure UI reflects creation immediately
+            const newTask: Task = {
+                ...taskData,
+                subtasks: createdSubtasks,
+                // Ensure sector match format expected by UI if needed, but string is also handled by some comps
+                // However, taskStore often normalizes. 
+                // Let's keep it as is from DB (string) or formatted.
+                // Dashboard.tsx handles string sector. 
+            }
+
+            set(state => ({
+                tasks: [...state.tasks, newTask]
+            }))
 
             await get().fetchTasks()
         } catch (error) {
             console.error('Error adding task:', error)
+            throw error // Re-throw to allow component to handle fallback if needed
         }
     },
 
@@ -217,10 +245,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         set({ syncingIds: new Set(syncingIds) })
 
         const cleanUpdates = { ...updates }
-        if (Array.isArray(cleanUpdates.sector)) {
-            // @ts-ignore
-            cleanUpdates.sector = cleanUpdates.sector.join(',')
-        }
+        // Removed manual array-to-string conversion for sector since DB expects array
+        // if (Array.isArray(cleanUpdates.sector)) {
+        //    cleanUpdates.sector = cleanUpdates.sector.join(',')
+        // }
 
         const updateList = (list: Task[]) => list.map(t => t.id === id ? { ...t, ...cleanUpdates } as Task : t)
         set({
@@ -253,10 +281,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
         try {
             const cleanUpdates = { ...updates }
-            if (Array.isArray(cleanUpdates.sector)) {
-                // @ts-ignore
-                cleanUpdates.sector = cleanUpdates.sector.join(',')
-            }
+            // Removed manual array-to-string conversion for sector since DB expects array
+            // if (Array.isArray(cleanUpdates.sector)) {
+            //    cleanUpdates.sector = cleanUpdates.sector.join(',')
+            // }
 
             const { error: taskError } = await supabase
                 .from('tasks')
@@ -266,7 +294,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             if (taskError) throw taskError
 
             for (const s of subtasksInput) {
-                const subStatus = s.status || (s.completed ? 'done' : 'pending')
+                const subStatus = s.status || (s.completed ? 'done' : 'todo')
                 if (s.id && !s.id.toString().includes('temp')) {
                     await supabase.from('subtasks').update({
                         title: s.title,
@@ -298,7 +326,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     },
 
     toggleTask: async (id, currentStatus) => {
-        const newStatus = currentStatus === 'pending' ? 'done' : 'pending'
+        const newStatus = currentStatus === 'todo' ? 'done' : 'todo'
         await get().updateTask(id, { status: newStatus as any })
     },
 
@@ -333,7 +361,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         const sectorOrder = allSectors.map(s => s.id)
         newSectors.sort((a, b) => sectorOrder.indexOf(a) - sectorOrder.indexOf(b))
 
-        await get().updateTaskSector(taskId, newSectors.join(','))
+        await get().updateTaskSector(taskId, newSectors)
     },
 
     moveToTrash: async (id) => {
@@ -469,7 +497,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             await supabase.from('subtasks').insert([{
                 task_id: taskId,
                 title,
-                status: 'pending',
+                status: 'todo',
                 order: maxOrder + 1
             }])
 
@@ -486,7 +514,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             const { data: subtask } = await supabase.from('subtasks').select('status, task_id').eq('id', subtaskId).single()
             if (!subtask) return
 
-            const newStatus = subtask.status === 'pending' ? 'done' : 'pending'
+            const newStatus = subtask.status === 'todo' ? 'done' : 'todo'
 
             const { syncingIds } = get()
             syncingIds.add(subtask.task_id)
