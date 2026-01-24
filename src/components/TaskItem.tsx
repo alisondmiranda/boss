@@ -672,24 +672,34 @@ export function TaskItem({
                                             className="w-48 bg-surface rounded-[20px] shadow-lg border border-outline-variant/50 z-50 overflow-hidden flex flex-col py-2"
                                         >
                                             <span className="px-4 py-2 text-[10px] uppercase font-bold text-on-surface-variant/50 tracking-wider">Mover para...</span>
-                                            {sectors.map(s => {
-                                                const isActive = taskSectors.includes(s.id)
-                                                const IconComp = ICONS.find(i => i.value === s.icon)?.icon || Tag
-                                                return (
-                                                    <button
-                                                        key={s.id}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation()
-                                                            toggleTaskSector(task.id, s.id, sectors)
-                                                        }}
-                                                        className={`px-4 py-2.5 text-sm text-left flex items-center gap-3 hover:bg-surface-variant/50 transition-colors ${isActive ? 'text-primary font-bold bg-primary/5' : 'text-on-surface'}`}
-                                                    >
-                                                        <IconComp className={`w-4 h-4 ${getSectorColorClass(s.color).split(' ')[1]}`} />
-                                                        {s.label}
-                                                        {isActive && <Check className="w-3.5 h-3.5 ml-auto text-primary" />}
-                                                    </button>
-                                                )
-                                            })}
+                                            {sectors
+                                                .filter(s => {
+                                                    const isGeral = s.label.toLowerCase() === 'geral' || s.label.toLowerCase() === 'general'
+                                                    const hasOtherSelected = taskSectors.some(id => {
+                                                        const sec = sectors.find(sec => sec.id === id)
+                                                        return sec && sec.label.toLowerCase() !== 'geral' && sec.label.toLowerCase() !== 'general'
+                                                    })
+                                                    if (isGeral && hasOtherSelected) return false
+                                                    return true
+                                                })
+                                                .map(s => {
+                                                    const isActive = taskSectors.includes(s.id)
+                                                    const IconComp = ICONS.find(i => i.value === s.icon)?.icon || Tag
+                                                    return (
+                                                        <button
+                                                            key={s.id}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                toggleTaskSector(task.id, s.id, sectors)
+                                                            }}
+                                                            className={`px-4 py-2.5 text-sm text-left flex items-center gap-3 hover:bg-surface-variant/50 transition-colors ${isActive ? 'text-primary font-bold bg-primary/5' : 'text-on-surface'}`}
+                                                        >
+                                                            <IconComp className={`w-4 h-4 ${getSectorColorClass(s.color).split(' ')[1]}`} />
+                                                            {s.label}
+                                                            {isActive && <Check className="w-3.5 h-3.5 ml-auto text-primary" />}
+                                                        </button>
+                                                    )
+                                                })}
                                             <div className="pt-2 mt-1 border-t border-outline-variant/30 px-2">
                                                 <button
                                                     onClick={(e) => {

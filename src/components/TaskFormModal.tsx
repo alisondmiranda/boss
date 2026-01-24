@@ -463,7 +463,7 @@ export function TaskFormModal({
                                                                         e.stopPropagation()
                                                                         const isGeral = s.label.toLowerCase() === 'geral' || s.label.toLowerCase() === 'general'
                                                                         if (isGeral) {
-                                                                            // Selecting Geral clears other selections
+                                                                            // Selecting Geral clears everything else
                                                                             setSelectedSectors([s.id])
                                                                         } else {
                                                                             // Selecting other sector removes Geral if present
@@ -472,12 +472,22 @@ export function TaskFormModal({
                                                                                     const sec = sectors.find(sec => sec.id === id)
                                                                                     return sec && sec.label.toLowerCase() !== 'geral' && sec.label.toLowerCase() !== 'general'
                                                                                 })
+
+                                                                                let next: string[]
                                                                                 if (withoutGeral.includes(s.id)) {
-                                                                                    // Deselecting - if becomes empty, Geral will be fallback
-                                                                                    return withoutGeral.filter(id => id !== s.id)
+                                                                                    // Deselecting
+                                                                                    next = withoutGeral.filter(id => id !== s.id)
                                                                                 } else {
-                                                                                    return [...withoutGeral, s.id]
+                                                                                    // Selecting
+                                                                                    next = [...withoutGeral, s.id]
                                                                                 }
+
+                                                                                // If empty after toggle, add Geral back
+                                                                                if (next.length === 0) {
+                                                                                    const geral = sectors.find(s => s.label.toLowerCase() === 'geral' || s.label.toLowerCase() === 'general')
+                                                                                    return geral ? [geral.id] : ['geral']
+                                                                                }
+                                                                                return next
                                                                             })
                                                                         }
                                                                         // Kept open for multi-selection

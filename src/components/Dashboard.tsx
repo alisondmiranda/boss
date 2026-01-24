@@ -247,7 +247,18 @@ export function Dashboard() {
                 }, subtasks)
                 addToast('Tarefa atualizada!', 'success')
             } else {
-                await addTask(title, finalSectors, dueAt, recurrence, details, subtasks)
+                // Apply fallback if no sectors
+                let finalSectorsForAdd = inputSectors
+                const isGeralOnly = !finalSectorsForAdd ||
+                    finalSectorsForAdd.length === 0 ||
+                    (finalSectorsForAdd.length === 1 && (finalSectorsForAdd[0] === 'geral' || finalSectorsForAdd[0] === 'general'))
+
+                if (isGeralOnly) {
+                    const geral = sectors.find(s => s.label.toLowerCase() === 'geral' || s.label.toLowerCase() === 'general')
+                    finalSectorsForAdd = geral ? [geral.id] : ['geral']
+                }
+
+                await addTask(title, finalSectorsForAdd, dueAt, recurrence, details, subtasks)
                 addToast('Tarefa criada com sucesso!', 'success')
             }
         } catch (error) {
@@ -555,7 +566,7 @@ export function Dashboard() {
 
                 {/* Sidebar Footer */}
                 <div className="mt-auto px-6 py-6 border-t border-outline-variant/30 bg-surface-variant/5">
-                    <p className="text-[10px] text-on-surface-variant/60 font-bold uppercase tracking-widest pl-1">Boss v1.3.9</p>
+                    <p className="text-[10px] text-on-surface-variant/60 font-bold uppercase tracking-widest pl-1">Boss v1.4.0</p>
                 </div>
             </motion.aside>
 

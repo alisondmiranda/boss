@@ -350,16 +350,41 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         if (!task) return
 
         const currentSectors = task.sector?.toString().split(',').filter(Boolean) || []
+
+        // Identify "Geral" ID
+        const geralSector = allSectors.find(s => s.label.toLowerCase() === 'geral' || s.label.toLowerCase() === 'general')
+        const geralId = geralSector?.id || 'geral'
+
         let newSectors: string[]
 
-        if (currentSectors.includes(sectorId)) {
-            newSectors = currentSectors.filter((s: string) => s !== sectorId)
+        if (sectorId === geralId) {
+            // Selecting Geral clears everything else
+            newSectors = [geralId]
         } else {
-            newSectors = [...currentSectors, sectorId]
+            // Selecting something else
+            if (currentSectors.includes(sectorId)) {
+                // Remove it
+                newSectors = currentSectors.filter((s: string) => s !== sectorId)
+            } else {
+                // Add it and remove Geral if present
+                newSectors = [...currentSectors.filter((s: string) => s !== geralId), sectorId]
+            }
+        }
+
+        // If empty, add Geral back
+        if (newSectors.length === 0) {
+            newSectors = [geralId]
         }
 
         const sectorOrder = allSectors.map(s => s.id)
-        newSectors.sort((a, b) => sectorOrder.indexOf(a) - sectorOrder.indexOf(b))
+        newSectors.sort((a, b) => {
+            const indexA = sectorOrder.indexOf(a)
+            const indexB = sectorOrder.indexOf(b)
+            if (indexA === -1 && indexB === -1) return 0
+            if (indexA === -1) return 1
+            if (indexB === -1) return -1
+            return indexA - indexB
+        })
 
         await get().updateTaskSector(taskId, newSectors)
     },
