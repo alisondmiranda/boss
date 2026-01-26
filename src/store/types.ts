@@ -24,6 +24,21 @@ export interface Task {
     order: number
 }
 
+export interface Sector {
+    id: string
+    label: string
+    color: 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'pink' | 'slate' | 'indigo' | 'teal' | 'cyan' | 'amber' | 'yellow' | 'lime' | 'sky' | 'violet' | 'fuchsia' | 'rose' | 'stone' | 'zinc' | 'gray' | 'brown' | 'black' | 'white'
+    icon: string
+    createdAt?: string
+}
+
+export interface UserProfile {
+    displayName: string
+    avatarType: 'icon' | 'url' | 'upload'
+    selectedIcon: string | null
+    customAvatarUrl: string | null
+}
+
 export interface TaskState {
     tasks: Task[]
     trashTasks: Task[]

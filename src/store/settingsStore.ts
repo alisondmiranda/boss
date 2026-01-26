@@ -1,22 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { supabase } from '../lib/supabase'
-
-export interface Sector {
-    id: string
-    label: string
-    color: 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'pink' | 'slate' | 'indigo' | 'teal' | 'cyan' | 'amber' | 'yellow' | 'lime' | 'sky' | 'violet' | 'fuchsia' | 'rose' | 'stone' | 'zinc' | 'gray' | 'brown' | 'black' | 'white'
-    icon: string
-    createdAt?: string
-}
-
-
-export interface UserProfile {
-    displayName: string
-    avatarType: 'icon' | 'url' | 'upload'
-    selectedIcon: string | null
-    customAvatarUrl: string | null
-}
+import { Sector, UserProfile } from './types'
+export type { Sector, UserProfile }
 
 interface SettingsState {
     geminiApiKey: string | null

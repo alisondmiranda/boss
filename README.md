@@ -89,4 +89,4 @@ Sempre que houver uma alteração técnica ou funcional no código, os seguintes
 
 ---
 
-**Boss v1.2.0** • Desenvolvido com ❤️ por Alison Miranda
+**Boss v1.5.0** • Desenvolvido com ❤️ por Alison Miranda

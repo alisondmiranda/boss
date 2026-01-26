@@ -1,15 +1,12 @@
-
-import { useState, useEffect, useRef, useMemo } from 'react'
-import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion'
-import {
-    Pencil, Link as LinkIcon, Github, X, Settings, AlertCircle, ExternalLink, Check, Trash2, Plus, Tag, Key,
-    ChevronDown, ChevronUp, GripVertical, SortAsc, Clock, Move
-} from 'lucide-react'
-import { useSettingsStore, Sector } from '../store/settingsStore'
+import { useState, useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { X, Settings } from 'lucide-react'
+import { useSettingsStore } from '../store/settingsStore'
 import { useToast } from '../store/toastStore'
 import { useAuthStore } from '../store/authStore'
-import crownLogo from '../assets/crown.svg'
-import { ICONS, AVATAR_ICONS, COLORS } from '../constants/icons.tsx'
+import { ProfileTab } from './settings/ProfileTab'
+import { SectorsTab } from './settings/SectorsTab'
+import { APITab } from './settings/APITab'
 
 interface SettingsModalProps {
     isOpen: boolean
@@ -18,198 +15,30 @@ interface SettingsModalProps {
     initialOpenCreation?: boolean
 }
 
-// Reorderable Item Component
-interface SectorItemProps {
-    sector: Sector
-    sortBy: 'manual' | 'alpha' | 'created'
-    editingId: string | null
-    onEdit: (sector: Sector) => void
-    onRemove: (id: string, label: string) => void
-}
-
-function SectorItem({ sector, sortBy, editingId, onEdit, onRemove }: SectorItemProps) {
-    const dragControls = useDragControls()
-    const Icon = ICONS.find(i => i.value === sector.icon)?.icon || Tag
-
-    return (
-        <Reorder.Item
-            value={sector}
-            dragListener={false}
-            dragControls={dragControls}
-            whileDrag={{
-                scale: 1.02,
-                boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
-            }}
-            transition={{ type: "spring", stiffness: 600, damping: 40 }}
-            className={`flex items-center justify-between p-3 bg-surface border rounded-[14px] group shadow-sm ${editingId === sector.id ? 'border-primary bg-primary-container/10' : 'border-outline-variant hover:border-primary/40'} select-none relative mb-2 last:mb-0`}
-        >
-            <div className="flex items-center gap-3">
-                {sortBy === 'manual' && (
-                    <div
-                        onPointerDown={(e) => dragControls.start(e)}
-                        className="p-2 -ml-1 cursor-grab active:cursor-grabbing hover:bg-surface-variant/50 rounded-md transition-colors"
-                    >
-                        <GripVertical className="w-5 h-5 text-on-surface-variant/40 group-hover:text-on-surface-variant/80" />
-                    </div>
-                )}
-                <div className={`w-9 h-9 rounded-[10px] flex items-center justify-center shadow-sm pointer-events-none ${COLORS.find(c => c.value === sector.color)?.value === 'white' ? 'border border-outline-variant text-black' : 'text-white'}`} style={{ backgroundColor: COLORS.find(c => c.value === sector.color)?.hex || '#ccc' }}>
-                    <Icon className="w-5 h-5" />
-                </div>
-                <span className="font-semibold text-sm text-on-surface pointer-events-none">{sector.label}</span>
-            </div>
-
-            <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                    type="button"
-                    onClick={() => onEdit(sector)}
-                    className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary-container/30 rounded-full transition-all"
-                    title="Editar"
-                >
-                    <Pencil className="w-4 h-4" />
-                </button>
-                <button
-                    type="button"
-                    onClick={() => onRemove(sector.id, sector.label)}
-                    className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container/10 rounded-full transition-all"
-                    title="Excluir"
-                >
-                    <Trash2 className="w-4 h-4" />
-                </button>
-            </div>
-        </Reorder.Item>
-    )
-}
-
-export function SettingsModal({ isOpen, onClose, initialTab = 'profile', initialOpenCreation = false }: SettingsModalProps) {
+export function SettingsModal({
+    isOpen,
+    onClose,
+    initialTab = 'profile',
+    initialOpenCreation = false
+}: SettingsModalProps) {
     const {
         geminiApiKey, setGeminiApiKey,
         sectors, addSector, updateSector, removeSector, reorderSectors,
         userProfile, updateUserProfile, sortBy, setSortBy
     } = useSettingsStore()
 
-    const displaySectors = useMemo(() => {
-        const list = [...sectors]
-        if (sortBy === 'alpha') return list.sort((a, b) => a.label.localeCompare(b.label))
-        if (sortBy === 'created') return list.sort((a, b) => (new Date(b.createdAt || 0).getTime()) - (new Date(a.createdAt || 0).getTime()))
-        return list
-    }, [sectors, sortBy])
-
     const { user, linkIdentity, unlinkIdentity } = useAuthStore()
     const { addToast } = useToast()
-    const [inputKey, setInputKey] = useState(geminiApiKey || '')
-
     const scrollRef = useRef<HTMLDivElement>(null)
-
-    // Safe Profile Access
-    const defaultProfile = { displayName: '', avatarType: 'icon' as const, selectedIcon: 'crown', customAvatarUrl: '' }
-    const safeProfile = userProfile || defaultProfile
 
     // Tabs
     const [activeTab, setActiveTab] = useState<'api' | 'sectors' | 'profile'>(initialTab)
 
-    // Sector Form State
-    const [editingId, setEditingId] = useState<string | null>(null)
-    const [sectorName, setSectorName] = useState('')
-    const [sectorColor, setSectorColor] = useState<Sector['color']>('blue')
-    const [sectorIcon, setSectorIcon] = useState('tag')
-
-    // Profile Form State
-    const [displayName, setDisplayName] = useState(safeProfile.displayName || '')
-    const [avatarType, setAvatarType] = useState(safeProfile.avatarType || 'icon')
-    const [selectedIcon, setSelectedIcon] = useState(safeProfile.selectedIcon || 'crown')
-    const [customAvatarUrl, setCustomAvatarUrl] = useState(safeProfile.customAvatarUrl || '')
-    const [showAllAvatars, setShowAllAvatars] = useState(false)
-    const [showAllColors, setShowAllColors] = useState(false)
-    const [showAllIcons, setShowAllIcons] = useState(false)
-    const [isSectorFormOpen, setIsSectorFormOpen] = useState(false)
-
     useEffect(() => {
         if (isOpen) {
             setActiveTab(initialTab)
-            setDisplayName(safeProfile.displayName || '')
-            setAvatarType(safeProfile.avatarType)
-            setSelectedIcon(safeProfile.selectedIcon || 'crown')
-            setCustomAvatarUrl(safeProfile.customAvatarUrl || '')
-            if (initialTab === 'sectors' && initialOpenCreation) {
-                resetForm()
-                setIsSectorFormOpen(true)
-            }
         }
-    }, [isOpen, initialTab, safeProfile, initialOpenCreation])
-
-    // Reset form when tab changes
-    useEffect(() => {
-        if (activeTab === 'sectors') resetForm()
-    }, [activeTab])
-
-    const resetForm = () => {
-        setEditingId(null)
-        setSectorName('')
-        setSectorColor('blue')
-        setSectorIcon('tag')
-        setIsSectorFormOpen(false)
-    }
-
-    const handleSaveKey = () => {
-        if (inputKey.trim()) {
-            setGeminiApiKey(inputKey.trim())
-            addToast('Chave de API salva com sucesso!', 'success')
-        }
-    }
-
-    const handleSaveProfile = () => {
-        updateUserProfile({
-            displayName,
-            avatarType,
-            selectedIcon,
-            customAvatarUrl
-        })
-        addToast('Perfil atualizado!', 'success')
-    }
-
-
-
-    const handleSaveSector = (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!sectorName.trim()) return
-
-        if (editingId) {
-            // Update Existing
-            updateSector(editingId, {
-                label: sectorName,
-                color: sectorColor,
-                icon: sectorIcon
-
-            })
-            addToast(`Etiqueta "${sectorName}" atualizada!`, 'success')
-        } else {
-            // Create New
-            const newId = sectorName.toLowerCase().replace(/\s+/g, '-')
-            // Simple check for duplicates
-            if (sectors.some(s => s.id === newId)) {
-                addToast('Já existe uma etiqueta com este ID (nome).', 'error')
-                return
-            }
-
-            addSector({
-                id: newId,
-                label: sectorName,
-                color: sectorColor,
-                icon: sectorIcon
-            })
-            addToast(`Etiqueta "${sectorName}" criada!`, 'success')
-        }
-        resetForm()
-    }
-
-    const handleEditClick = (sector: Sector) => {
-        setEditingId(sector.id)
-        setSectorName(sector.label)
-        setSectorColor(sector.color)
-        setSectorIcon(sector.icon)
-        setIsSectorFormOpen(true)
-        scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
-    }
+    }, [isOpen, initialTab])
 
     return (
         <AnimatePresence>
@@ -239,7 +68,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile', initial
                             </button>
                         </div>
 
-                        {/* Tabs */}
+                        {/* Tabs Navigation */}
                         <div className="flex border-b border-outline-variant px-6">
                             <button
                                 onClick={() => setActiveTab('profile')}
@@ -261,443 +90,44 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'profile', initial
                             </button>
                         </div>
 
+                        {/* Tab Content */}
                         <div ref={scrollRef} className="p-6 overflow-y-auto custom-scrollbar bg-surface-variant/30 flex-1">
-                            {activeTab === 'api' && (
-                                <div className="space-y-6 relative">
-                                    {/* WIP Overlay */}
-                                    <div className="absolute inset-0 bg-surface/90 backdrop-blur-[4px] z-10 flex flex-col items-center justify-center text-center p-6 rounded-xl">
-                                        <div className="bg-surface p-6 rounded-2xl shadow-6 border border-primary/20 max-w-sm">
-                                            <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
-                                                <AlertCircle className="w-8 h-8" />
-                                            </div>
-                                            <h3 className="text-xl font-bold text-on-surface mb-2">Em desenvolvimento</h3>
-                                            <p className="text-sm text-on-surface-variant">
-                                                A integração com a IA está sendo aprimorada para oferecer uma experiência ainda melhor. Volte em breve!
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-primary-container p-4 rounded-xl border border-transparent opacity-50 pointer-events-none">
-                                        <p className="text-sm text-on-primary-container leading-relaxed">
-                                            O Boss usa a inteligência do <strong>Google Gemini</strong> para organizar suas tarefas.
-                                            Sua chave fica salva apenas no seu navegador.
-                                        </p>
-                                    </div>
-
-                                    <div className="opacity-50 pointer-events-none">
-                                        <label className="block text-sm font-medium text-on-surface-variant mb-2 flex items-center gap-2">
-                                            <Key className="w-4 h-4" />
-                                            Chave de API
-                                        </label>
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="password"
-                                                value={inputKey}
-                                                onChange={(e) => setInputKey(e.target.value)}
-                                                placeholder="Cole sua chave AIza..."
-                                                className="flex-1 input-field !bg-surface"
-                                                disabled
-                                            />
-                                            <button
-                                                onClick={handleSaveKey}
-                                                className="h-[50px] px-6 bg-primary text-on-primary rounded-[12px] hover:shadow-2 transition-all flex items-center justify-center"
-                                                disabled
-                                            >
-                                                <Check className="w-5 h-5" />
-                                            </button>
-                                        </div>
-                                        <div className="mt-3 text-xs flex justify-between items-center">
-                                            {geminiApiKey ? (
-                                                <span className="text-green-600 flex items-center gap-1 font-medium bg-green-100 px-2 py-1 rounded-md">
-                                                    <Check className="w-3 h-3" /> Conectado
-                                                </span>
-                                            ) : (
-                                                <span className="text-amber-600 flex items-center gap-1 font-medium bg-amber-100 px-2 py-1 rounded-md">
-                                                    <AlertCircle className="w-3 h-3" /> Não configurado
-                                                </span>
-                                            )}
-                                            <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-primary hover:underline flex items-center gap-1 pointer-events-none">
-                                                Obter chave <ExternalLink className="w-3 h-3" />
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
                             {activeTab === 'profile' && (
-                                <div className="space-y-8">
-                                    {/* Name Section */}
-                                    <div className="space-y-3">
-                                        <label className="text-sm font-bold text-on-surface-variant uppercase tracking-wider block">Como quer ser chamado?</label>
-                                        <input
-                                            type="text"
-                                            value={displayName}
-                                            onChange={(e) => setDisplayName(e.target.value)}
-                                            placeholder="Boss"
-                                            className="w-full input-field !bg-surface text-lg"
-                                        />
-                                        <p className="text-xs text-on-surface-variant/70">
-                                            Deixe em branco para ser chamado de "Boss".
-                                        </p>
-                                    </div>
-
-                                    {/* Avatar Section */}
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <label className="text-sm font-bold text-on-surface-variant uppercase tracking-wider block">Avatar</label>
-                                            <button
-                                                onClick={() => setShowAllAvatars(!showAllAvatars)}
-                                                className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
-                                            >
-                                                {showAllAvatars ? 'Ver menos' : 'Ver todos'}
-                                                {showAllAvatars ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                                            </button>
-                                        </div>
-
-                                        <div className="grid grid-cols-8 gap-2">
-                                            {/* Default Crown */}
-                                            <button
-                                                onClick={() => { setAvatarType('icon'); setSelectedIcon('crown') }}
-                                                className={`w-full aspect-square rounded-xl flex items-center justify-center border-2 transition-all ${avatarType === 'icon' && selectedIcon === 'crown' ? 'border-primary bg-primary-container/30' : 'border-outline-variant hover:border-primary/50 bg-surface'}`}
-                                            >
-                                                <img src={crownLogo} className="w-5 h-5 opacity-80" alt="Crown" />
-                                            </button>
-
-                                            {/* Other Icons */}
-                                            {AVATAR_ICONS.filter(i => i.value !== 'crown').slice(0, showAllAvatars ? undefined : 7).map(avatar => (
-                                                <button
-                                                    key={avatar.value}
-                                                    onClick={() => { setAvatarType('icon'); setSelectedIcon(avatar.value) }}
-                                                    className={`w-full aspect-square rounded-xl flex items-center justify-center border-2 transition-all ${avatarType === 'icon' && selectedIcon === avatar.value ? 'border-primary bg-primary-container/30 text-primary' : 'border-outline-variant hover:border-primary/50 bg-surface text-on-surface-variant'}`}
-                                                    title={avatar.label}
-                                                >
-                                                    <avatar.icon className="w-5 h-5" />
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Identity Linking */}
-                                    <div className="space-y-3 pt-4 border-t border-outline-variant/30">
-                                        <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Contas Vinculadas</label>
-
-                                        <div className="flex flex-col gap-2">
-                                            <ProviderLinkButton
-                                                provider="google"
-                                                label="Google"
-                                                icon={GoogleIcon}
-                                                user={user}
-                                                onLink={() => linkIdentity('google')}
-                                                onUnlink={(id) => unlinkIdentity(id)}
-                                            />
-                                            <ProviderLinkButton
-                                                provider="github"
-                                                label="GitHub"
-                                                icon={Github}
-                                                user={user}
-                                                onLink={() => linkIdentity('github')}
-                                                onUnlink={(id) => unlinkIdentity(id)}
-                                            />
-                                            <ProviderLinkButton
-                                                provider="linkedin_oidc"
-                                                label="LinkedIn"
-                                                icon={LinkedInIcon}
-                                                user={user}
-                                                onLink={() => linkIdentity('linkedin_oidc')}
-                                                onUnlink={(id) => unlinkIdentity(id)}
-                                            />
-
-                                        </div>
-                                    </div>
-                                </div>
+                                <ProfileTab
+                                    userProfile={userProfile}
+                                    user={user}
+                                    linkIdentity={linkIdentity}
+                                    unlinkIdentity={unlinkIdentity}
+                                    updateUserProfile={updateUserProfile}
+                                    addToast={addToast}
+                                />
                             )}
 
                             {activeTab === 'sectors' && (
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between px-1">
-                                        <h3 className="text-sm font-bold text-on-surface">Minhas Etiquetas</h3>
-                                        <button
-                                            onClick={() => { resetForm(); setIsSectorFormOpen(true); }}
-                                            className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full font-bold hover:bg-primary/20 transition-all flex items-center gap-1"
-                                        >
-                                            <Plus className="w-3 h-3" strokeWidth={3} />
-                                            NOVA ETIQUETA
-                                        </button>
-                                    </div>
+                                <SectorsTab
+                                    sectors={sectors}
+                                    addSector={addSector}
+                                    updateSector={updateSector}
+                                    removeSector={removeSector}
+                                    reorderSectors={reorderSectors}
+                                    sortBy={sortBy}
+                                    setSortBy={setSortBy}
+                                    addToast={addToast}
+                                    initialOpenCreation={initialOpenCreation}
+                                />
+                            )}
 
-                                    <div className="flex flex-col gap-4">
-                                        <div className="flex items-center gap-2 p-1 bg-surface-variant/30 rounded-xl">
-                                            <button
-                                                onClick={() => setSortBy('manual')}
-                                                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all ${sortBy === 'manual' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-variant'}`}
-                                                title="Ordem Personalizada (Arraste para organizar)"
-                                            >
-                                                <Move className="w-3.5 h-3.5" />
-                                                MINHA ORDEM
-                                            </button>
-                                            <button
-                                                onClick={() => setSortBy('alpha')}
-                                                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all ${sortBy === 'alpha' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-variant'}`}
-                                            >
-                                                <SortAsc className="w-3.5 h-3.5" />
-                                                A-Z
-                                            </button>
-                                            <button
-                                                onClick={() => setSortBy('created')}
-                                                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all ${sortBy === 'created' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-variant'}`}
-                                            >
-                                                <Clock className="w-3.5 h-3.5" />
-                                                CRIAÇÃO
-                                            </button>
-                                        </div>
-
-                                        <Reorder.Group
-                                            axis="y"
-                                            values={displaySectors}
-                                            onReorder={(newOrder) => {
-                                                if (sortBy === 'manual') reorderSectors(newOrder)
-                                            }}
-                                            className="space-y-1"
-                                        >
-                                            <AnimatePresence mode="popLayout">
-                                                {displaySectors.length === 0 ? (
-                                                    <motion.div
-                                                        initial={{ opacity: 0 }}
-                                                        animate={{ opacity: 1 }}
-                                                        exit={{ opacity: 0 }}
-                                                        className="text-center py-10 border-2 border-dashed border-outline-variant/30 rounded-[20px]"
-                                                    >
-                                                        <p className="text-sm text-on-surface-variant font-medium">Nenhuma etiqueta criada.</p>
-                                                        <button
-                                                            onClick={() => setIsSectorFormOpen(true)}
-                                                            className="text-primary text-xs font-bold mt-2 hover:underline"
-                                                        >
-                                                            Começar agora
-                                                        </button>
-                                                    </motion.div>
-                                                ) : (
-                                                    displaySectors.map(sector => (
-                                                        <SectorItem
-                                                            key={sector.id}
-                                                            sector={sector}
-                                                            sortBy={sortBy}
-                                                            editingId={editingId}
-                                                            onEdit={handleEditClick}
-                                                            onRemove={(id, label) => {
-                                                                if (confirm(`Excluir a etiqueta "${label}"?`)) {
-                                                                    removeSector(id)
-                                                                }
-                                                            }}
-                                                        />
-                                                    ))
-                                                )}
-                                            </AnimatePresence>
-                                        </Reorder.Group>
-                                    </div>
-
-                                    {/* Sector Form Popup Overlay */}
-                                    <AnimatePresence>
-                                        {isSectorFormOpen && (
-                                            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                                                <motion.div
-                                                    initial={{ opacity: 0 }}
-                                                    animate={{ opacity: 1 }}
-                                                    exit={{ opacity: 0 }}
-                                                    onClick={resetForm}
-                                                    className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-                                                />
-                                                <motion.div
-                                                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                                                    className="relative w-full max-w-sm bg-surface rounded-[24px] shadow-5 border border-outline-variant overflow-hidden"
-                                                >
-                                                    <form onSubmit={handleSaveSector} className="p-6 space-y-6">
-                                                        <div className="flex justify-between items-center">
-                                                            <h3 className="text-lg font-bold text-on-surface">
-                                                                {editingId ? 'Editar Etiqueta' : 'Nova Etiqueta'}
-                                                            </h3>
-                                                            <button
-                                                                type="button"
-                                                                onClick={resetForm}
-                                                                className="p-2 hover:bg-surface-variant rounded-full text-on-surface-variant transition-colors"
-                                                            >
-                                                                <X className="w-5 h-5" />
-                                                            </button>
-                                                        </div>
-
-                                                        <div className="space-y-4">
-                                                            <div>
-                                                                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2 block">Nome da Etiqueta</label>
-                                                                <input
-                                                                    type="text"
-                                                                    autoFocus
-                                                                    value={sectorName}
-                                                                    onChange={(e) => setSectorName(e.target.value)}
-                                                                    placeholder="Ex: Trabalho, Compras..."
-                                                                    className="w-full input-field !bg-surface-variant/50"
-                                                                />
-                                                            </div>
-
-                                                            {/* Colors */}
-                                                            <div>
-                                                                <div className="flex items-center justify-between mb-3">
-                                                                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Cor do Marcador</label>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setShowAllColors(!showAllColors)}
-                                                                        className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
-                                                                    >
-                                                                        {showAllColors ? 'Ver menos' : 'Ver todas'}
-                                                                        {showAllColors ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                                                                    </button>
-                                                                </div>
-                                                                <div className="grid grid-cols-10 gap-2">
-                                                                    {COLORS.slice(0, showAllColors ? undefined : 10).map(c => (
-                                                                        <button
-                                                                            key={c.value}
-                                                                            type="button"
-                                                                            onClick={() => setSectorColor(c.value)}
-                                                                            className={`w-full aspect-square rounded-full transition-all flex items-center justify-center border-2 border-transparent hover:border-outline-variant/50 ${sectorColor === c.value ? 'ring-2 ring-offset-2 ring-primary shadow-sm scale-110' : 'opacity-80 hover:opacity-100 hover:scale-105'} ${c.value === 'white' ? '!border-outline-variant' : ''}`}
-                                                                            style={{ backgroundColor: c.hex }}
-                                                                        >
-                                                                            {sectorColor === c.value && <Check className={`w-3 h-3 drop-shadow-md ${c.value === 'white' ? 'text-black' : 'text-white'}`} />}
-                                                                        </button>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Icons */}
-                                                            <div>
-                                                                <div className="flex items-center justify-between mb-3">
-                                                                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Ícone</label>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setShowAllIcons(!showAllIcons)}
-                                                                        className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
-                                                                    >
-                                                                        {showAllIcons ? 'Ver menos' : 'Ver todos'}
-                                                                        {showAllIcons ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                                                                    </button>
-                                                                </div>
-                                                                <div className="grid grid-cols-8 gap-2">
-                                                                    {ICONS.slice(0, showAllIcons ? undefined : 8).map(i => (
-                                                                        <button
-                                                                            key={i.value}
-                                                                            type="button"
-                                                                            onClick={() => setSectorIcon(i.value)}
-                                                                            className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all ${sectorIcon === i.value
-                                                                                ? 'bg-secondary-container text-on-secondary-container shadow-sm ring-1 ring-secondary'
-                                                                                : 'bg-surface-variant/50 text-on-surface-variant hover:bg-surface-variant hover:text-on-surface'
-                                                                                }`}
-                                                                        >
-                                                                            <i.icon className="w-4 h-4" />
-                                                                        </button>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="pt-2">
-                                                            <button
-                                                                type="submit"
-                                                                disabled={!sectorName}
-                                                                className="w-full py-4 bg-primary text-on-primary rounded-[16px] font-bold shadow-2 hover:shadow-3 active:scale-[0.98] transition-all disabled:opacity-50"
-                                                            >
-                                                                {editingId ? 'Salvar Edição' : 'Criar Etiqueta'}
-                                                            </button>
-                                                        </div>
-                                                    </form>
-                                                </motion.div>
-                                            </div>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
+                            {activeTab === 'api' && (
+                                <APITab
+                                    geminiApiKey={geminiApiKey}
+                                    setGeminiApiKey={setGeminiApiKey}
+                                    addToast={addToast}
+                                />
                             )}
                         </div>
-
-                        {/* Sticky Footer for Profile Save */}
-                        {activeTab === 'profile' && (
-                            <div className="p-4 border-t border-outline-variant bg-surface shrink-0">
-                                <button
-                                    onClick={handleSaveProfile}
-                                    className="w-full py-3 bg-primary text-on-primary rounded-[16px] font-medium shadow-2 active:scale-95 transition-all"
-                                >
-                                    Salvar Alterações
-                                </button>
-                            </div>
-                        )}
                     </motion.div>
                 </motion.div>
             )}
         </AnimatePresence>
-    )
-}
-
-
-function GoogleIcon({ className }: { className?: string }) {
-    return (
-        <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-            <path d="M21.35 11.1H12v3.8h5.36c-.23 1.25-2.23 3.66-5.36 3.66-3.23 0-5.86-2.61-5.86-6.17s2.63-6.17 5.86-6.17c1.83 0 3.04.78 3.74 1.45l2.67-2.9C16.89 3.07 14.65 2 12 2 6.48 2 2 6.48 2 12s4.48 10 10 10c5.77 0 9.6-4.06 9.6-9.77 0-.67-.06-1.31-.19-1.92z" />
-        </svg>
-    )
-}
-
-function LinkedInIcon({ className }: { className?: string }) {
-    return (
-        <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.216zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452z" />
-        </svg>
-    )
-}
-
-
-
-interface ProviderLinkButtonProps {
-    provider: string
-    label: string
-    icon?: any
-    user: any
-    onLink: () => Promise<void>
-    onUnlink: (identity: any) => Promise<void>
-}
-
-function ProviderLinkButton({ provider, label, icon: Icon, user, onLink, onUnlink }: ProviderLinkButtonProps) {
-    const { addToast } = useToast()
-
-
-    const identity = user?.identities?.find((id: any) => id.provider === provider)
-    const isLinked = !!identity
-
-    const handleLink = async () => {
-        try {
-            if (isLinked) {
-                if (confirm(`Desvincular conta do ${label}?`)) {
-                    await onUnlink(identity)
-                    addToast(`${label} desvinculado.`, 'success')
-                }
-            } else {
-                await onLink()
-                addToast(`${label} vinculado com sucesso!`, 'success')
-            }
-        } catch (e) {
-            addToast(`Erro ao atualizar ${label}.`, 'error')
-        }
-    }
-
-    return (
-        <button
-            onClick={handleLink}
-            className={`w-full p-3 rounded-xl border flex items-center justify-between transition-all ${isLinked
-                ? 'bg-surface border-green-200 text-green-700'
-                : 'bg-surface border-outline-variant text-on-surface hover:bg-surface-variant'}`}
-        >
-            <span className="flex items-center gap-2 font-medium text-sm">
-                <div className={`w-2 h-2 rounded-full ${isLinked ? 'bg-green-500' : 'bg-on-surface/20'}`} />
-                {Icon && <Icon className="w-4 h-4" />}
-                {label}
-            </span>
-            {isLinked ? <X className="w-4 h-4 text-on-surface-variant hover:text-error" /> : <LinkIcon className="w-4 h-4 opacity-50" />}
-        </button>
     )
 }
