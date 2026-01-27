@@ -1,0 +1,1 @@
+ALTER TABLE tasks DROP CONSTRAINT tasks_sector_check;

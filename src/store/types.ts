@@ -22,6 +22,16 @@ export interface Task {
     details: string | null
     subtasks: Subtask[]
     order: number
+    column_id: string | null
+}
+
+export interface KanbanColumn {
+    id: string
+    title: string
+    color: string
+    icon?: string
+    order: number
+    user_id: string
 }
 
 export interface Sector {
@@ -50,7 +60,7 @@ export interface TaskState {
 
     setFilter: (sectorId: string | null) => void
     fetchTasks: (isBackgroundUpdate?: boolean) => Promise<void>
-    addTask: (title: any, sectors?: any, dueAt?: any, recurrence?: any, details?: any, subtasks?: any[]) => Promise<void>
+    addTask: (title: any, sectors?: any, dueAt?: any, recurrence?: any, details?: any, subtasks?: any[], columnId?: string | null) => Promise<void>
     updateTask: (id: string, updates: Partial<Task>) => Promise<void>
     updateTaskWithSubtasks: (id: string, updates: Partial<Task>, subtasks: any[]) => Promise<void>
     toggleTask: (id: string, currentStatus: string) => Promise<void>
@@ -71,4 +81,13 @@ export interface TaskState {
     reorderSubtasks: (taskId: string, newSubtasks: any[]) => Promise<void>
 
     subscribeToTasks: () => () => void
+
+    // Kanban Actions
+    columns: KanbanColumn[]
+    fetchColumns: () => Promise<void>
+    addColumn: (title: string, color?: string) => Promise<void>
+    updateColumn: (id: string, updates: Partial<KanbanColumn>) => Promise<void>
+    deleteColumn: (id: string) => Promise<void>
+    reorderColumns: (newColumns: KanbanColumn[]) => Promise<void>
+    moveTaskToColumn: (taskId: string, columnId: string | null, newIndex: number) => Promise<void>
 }

@@ -2,13 +2,14 @@ import { useMemo } from 'react'
 import { Reorder } from 'framer-motion'
 import { Calendar, ChevronDown, ChevronRight } from 'lucide-react'
 import { Task } from '../../store/taskStore'
-import { Sector } from '../../store/settingsStore'
+import { Sector, KanbanColumn } from '../../store/types'
 import { TaskItem } from './TaskItem'
 
 interface TaskListViewProps {
     tasks: Task[]
     loading: boolean
     sortedSectors: Sector[]
+    columns?: KanbanColumn[]
     sortBy: 'dueDate' | 'createdAt' | 'name' | 'manual'
     handleSortChange: (sort: any) => void
 
@@ -28,6 +29,7 @@ interface TaskListViewProps {
     onEditClick: (task: Task) => void
     onDateClick: (task: Task) => void
     onRecurrenceClick: (task: Task) => void
+    onMobileClick?: (task: Task) => void
 
     // Done section
     showDone: boolean
@@ -46,6 +48,7 @@ export function TaskListView({
     tasks,
     loading,
     sortedSectors,
+    columns,
     sortBy,
     handleSortChange,
     toggleTask,
@@ -65,7 +68,8 @@ export function TaskListView({
     onRecurrenceClick,
     showDone,
     setShowDone,
-    handleClearDone
+    handleClearDone,
+    onMobileClick
 }: TaskListViewProps) {
     const pendingTasks = useMemo(() => tasks.filter(t => t.status !== 'done'), [tasks])
     const doneTasks = useMemo(() => tasks.filter(t => t.status === 'done'), [tasks])
@@ -93,6 +97,7 @@ export function TaskListView({
                         task={task}
                         taskSectors={getTaskSectors(task)}
                         sectors={sortedSectors}
+                        columns={columns}
                         toggleTask={toggleTask}
                         toggleTaskSector={toggleTaskSector}
                         updateSubtask={updateSubtask}
@@ -107,6 +112,7 @@ export function TaskListView({
                         onEditClick={onEditClick}
                         onDateClick={onDateClick}
                         onRecurrenceClick={onRecurrenceClick}
+                        onMobileClick={onMobileClick}
                         sortBy={sortBy}
                     />
                 ))}
@@ -174,6 +180,7 @@ export function TaskListView({
                                     task={task}
                                     taskSectors={getTaskSectors(task)}
                                     sectors={sortedSectors}
+                                    columns={columns}
                                     toggleTask={toggleTask}
                                     toggleTaskSector={toggleTaskSector}
                                     updateSubtask={updateSubtask}
@@ -188,6 +195,7 @@ export function TaskListView({
                                     onEditClick={onEditClick}
                                     onDateClick={onDateClick}
                                     onRecurrenceClick={onRecurrenceClick}
+                                    onMobileClick={onMobileClick}
                                 />
                             ))}
                         </Reorder.Group>

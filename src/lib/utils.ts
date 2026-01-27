@@ -33,3 +33,29 @@ export const getSectorColorClass = (color: string): string => {
         default: return 'bg-slate-100 text-slate-700 border-slate-200'
     }
 }
+
+/**
+ * Returns Tailwind CSS classes for Kanban column badge (softer variant)
+ */
+export const getColumnColorClass = (color: string): string => {
+    switch (color) {
+        case 'slate': return 'bg-slate-500/10 text-slate-600 border-slate-500/20'
+        case 'red': return 'bg-red-500/10 text-red-600 border-red-500/20'
+        case 'orange': return 'bg-orange-500/10 text-orange-600 border-orange-500/20'
+        case 'amber': return 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+        case 'yellow': return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
+        case 'lime': return 'bg-lime-500/10 text-lime-600 border-lime-500/20'
+        case 'green': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+        case 'teal': return 'bg-teal-500/10 text-teal-600 border-teal-500/20'
+        case 'cyan': return 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20'
+        case 'sky': return 'bg-sky-500/10 text-sky-600 border-sky-500/20'
+        case 'blue': return 'bg-blue-500/10 text-blue-600 border-blue-500/20'
+        case 'indigo': return 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20'
+        case 'violet': return 'bg-violet-500/10 text-violet-600 border-violet-500/20'
+        case 'purple': return 'bg-purple-500/10 text-purple-600 border-purple-500/20'
+        case 'fuchsia': return 'bg-fuchsia-500/10 text-fuchsia-600 border-fuchsia-500/20'
+        case 'pink': return 'bg-pink-500/10 text-pink-600 border-pink-500/20'
+        case 'rose': return 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+        default: return 'bg-slate-500/10 text-slate-600 border-slate-500/20'
+    }
+}

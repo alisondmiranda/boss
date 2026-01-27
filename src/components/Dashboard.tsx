@@ -19,6 +19,9 @@ import { ChatView } from './chat/ChatView'
 import { TaskToolbar } from './tasks/TaskToolbar'
 import { TaskListView } from './tasks/TaskListView'
 import { TrashView } from './tasks/TrashView'
+import { KanbanView } from './kanban/KanbanView'
+import { MobileBottomNav } from './layout/MobileBottomNav'
+import { TaskDetailBottomSheet } from './tasks/TaskDetailBottomSheet'
 
 export function Dashboard() {
     // UI Store
@@ -36,7 +39,8 @@ export function Dashboard() {
         tasks, trashTasks, loading, fetchTasks,
         toggleTaskSector, updateTask, updateSubtask,
         addTask, addSubtask, toggleSubtask, deleteSubtask,
-        reorderTasks, reorderSubtasks, subscribeToTasks
+        reorderTasks, reorderSubtasks, subscribeToTasks,
+        columns, fetchColumns
     } = useTaskStore()
 
     // Settings Store
@@ -88,7 +92,7 @@ export function Dashboard() {
     const [sidebarOpen] = useState(true)
     const isSidebarExpanded = isLeftSidebarExpanded
     const setIsSidebarExpanded = setLeftSidebarExpanded
-    const [sidebarMode, setSidebarMode] = useState<'nav' | 'chat' | 'trash'>('nav')
+    const [sidebarMode, setSidebarMode] = useState<'nav' | 'chat' | 'trash' | 'kanban'>('nav')
     const [menuOpen, setMenuOpen] = useState(false)
     const [showDone, setShowDone] = useState(false)
 
@@ -101,6 +105,7 @@ export function Dashboard() {
 
     // Task Menu State
     const [taskMenuOpen, setTaskMenuOpen] = useState<string | null>(null)
+    const [mobileTaskToEdit, setMobileTaskToEdit] = useState<Task | null>(null)
 
     // Computed
     const doneTasksCount = useMemo(() => tasks.filter(t => t.status === 'done').length, [tasks])
@@ -148,6 +153,7 @@ export function Dashboard() {
     // Fetch data and subscribe on mount
     useEffect(() => {
         fetchTasks()
+        fetchColumns()
         fetchUIPreferences()
         const unsubscribeUI = subscribeToUIPreferences()
         const unsubscribeTasks = subscribeToTasks()
@@ -204,7 +210,7 @@ export function Dashboard() {
                 />
 
                 {/* Main Views */}
-                <div className="flex-1 overflow-y-auto px-6 lg:px-10 pb-20 custom-scrollbar relative">
+                <div className="flex-1 overflow-y-auto px-6 lg:px-10 pb-32 md:pb-20 custom-scrollbar relative">
 
                     {/* VIEW: CHAT */}
                     {sidebarMode === 'chat' && (
@@ -266,6 +272,7 @@ export function Dashboard() {
                                 tasks={sortedTasks}
                                 loading={loading}
                                 sortedSectors={sortedSectors}
+                                columns={columns}
                                 sortBy={sortBy}
                                 handleSortChange={handleSortChange}
                                 toggleTask={handleToggleTask}
@@ -286,6 +293,7 @@ export function Dashboard() {
                                 showDone={showDone}
                                 setShowDone={setShowDone}
                                 handleClearDone={() => handleClearDone(doneTasksCount)}
+                                onMobileClick={(task) => setMobileTaskToEdit(task)}
                             />
                         </div>
                     )}
@@ -300,10 +308,46 @@ export function Dashboard() {
                             handlePermanentDelete={handlePermanentDelete}
                         />
                     )}
+
+                    {/* VIEW: KANBAN */}
+                    {sidebarMode === 'kanban' && (
+                        <KanbanView />
+                    )}
                 </div>
             </main>
 
             <RightSidebar />
+
+            <MobileBottomNav
+                onMenuClick={() => openSettings('sectors')}
+                onAddClick={() => setIsTaskFormOpen(true)}
+                onSearchClick={() => {
+                    setIsSearchOpen(true)
+                    // Pequeno delay para garantir que a UI expandiu
+                    setTimeout(() => searchInputRef.current?.focus(), 100)
+                }}
+                onCalendarClick={() => {
+                    // Por enquanto abre o form com data, ou poderia ser um toast
+                    setInitialOpenPicker('date')
+                    setIsTaskFormOpen(true)
+                }}
+            />
+
+            <TaskDetailBottomSheet
+                task={mobileTaskToEdit}
+                isOpen={!!mobileTaskToEdit}
+                onClose={() => setMobileTaskToEdit(null)}
+                updateTask={updateTask}
+                toggleTask={handleToggleTask}
+                addSubtask={addSubtask}
+                updateSubtask={updateSubtask}
+                deleteSubtask={deleteSubtask}
+                toggleSubtask={toggleSubtask}
+                reorderSubtasks={reorderSubtasks}
+                handleMoveToTrash={handleMoveToTrash}
+                sectors={sortedSectors}
+                toggleTaskSector={toggleTaskSector}
+            />
         </div>
     )
 }

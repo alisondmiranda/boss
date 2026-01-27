@@ -3,6 +3,7 @@ import { useUIStore } from '../store/uiStore'
 import { CalendarWidget } from './widgets/CalendarWidget'
 import { TimeHubWidget } from './widgets/TimeHubWidget'
 import { PanelRightClose } from 'lucide-react'
+import { ErrorBoundary } from './common/ErrorBoundary'
 
 export function RightSidebar() {
     const { isRightSidebarOpen, toggleRightSidebar } = useUIStore()
@@ -31,8 +32,12 @@ export function RightSidebar() {
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-                    <CalendarWidget />
-                    <TimeHubWidget />
+                    <ErrorBoundary name="CalendarWidget">
+                        <CalendarWidget />
+                    </ErrorBoundary>
+                    <ErrorBoundary name="TimeHubWidget">
+                        <TimeHubWidget />
+                    </ErrorBoundary>
                 </div>
 
                 {/* Footer */}

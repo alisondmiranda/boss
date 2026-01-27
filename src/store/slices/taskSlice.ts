@@ -116,7 +116,7 @@ export const createTaskSlice: StateCreator<TaskState, [], [], TaskSlice> = (set,
         }
     },
 
-    addTask: async (title, sectors = [], dueAt = null, recurrence = null, details = null, subtasksInput = []) => {
+    addTask: async (title, sectors = [], dueAt = null, recurrence = null, details = null, subtasksInput = [], columnId = null) => {
         const user = (await supabase.auth.getUser()).data.user
         if (!user) return
 
@@ -141,7 +141,8 @@ export const createTaskSlice: StateCreator<TaskState, [], [], TaskSlice> = (set,
                     due_at: dueAt instanceof Date ? dueAt.toISOString() : dueAt,
                     recurrence_id: recurrence?.id || null,
                     details,
-                    order: maxOrder + 1
+                    order: maxOrder + 1,
+                    column_id: columnId
                 }])
                 .select()
                 .single()

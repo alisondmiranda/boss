@@ -1,0 +1,15 @@
+src/components/kanban/KanbanCard.tsx(2,33): error TS6133: 'GripVertical' is declared but its value is never read.
+src/components/kanban/KanbanColumn.tsx(2,26): error TS6133: 'Plus' is declared but its value is never read.
+src/components/kanban/KanbanColumn.tsx(15,41): error TS6133: 'updateColumn' is declared but its value is never read.
+src/components/kanban/KanbanView.tsx(2,10): error TS6133: 'motion' is declared but its value is never read.
+src/components/kanban/KanbanView.tsx(5,1): error TS6133: 'KanbanColumn' is declared but its value is never read.
+src/components/kanban/KanbanView.tsx(15,9): error TS6133: 'updateTask' is declared but its value is never read.
+src/components/tasks/TaskDetailBottomSheet.tsx(2,54): error TS6133: 'ArrowUpRight' is declared but its value is never read.
+src/components/tasks/TaskDetailBottomSheet.tsx(3,31): error TS6133: 'useRef' is declared but its value is never read.
+src/components/tasks/TaskDetailBottomSheet.tsx(32,17): error TS6133: 'updateSubtask' is declared but its value is never read.
+src/components/tasks/TaskDetailBottomSheet.tsx(121,41): error TS2322: Type '{ isCompleted: boolean; isAnimating: false; onToggle: () => void; size: string; }' is not assignable to type 'IntrinsicAttributes & TaskCheckboxProps'.
+  Property 'size' does not exist on type 'IntrinsicAttributes & TaskCheckboxProps'.
+src/components/tasks/TaskDetailBottomSheet.tsx(171,37): error TS2322: Type '{ task: Task; sectors: Sector[]; taskSectors: any[]; taskMenuOpen: null; setTaskMenuOpen: () => void; toggleTaskSector: (taskId: string, sectorId: string, allSectors: { id: string; label: string; }[]) => Promise<...>; readOnly: boolean; }' is not assignable to type 'IntrinsicAttributes & TaskSectorsProps'.
+  Property 'readOnly' does not exist on type 'IntrinsicAttributes & TaskSectorsProps'.
+src/components/tasks/TaskDetailBottomSheet.tsx(207,45): error TS2740: Type '{}' is missing the following properties from type 'Set<string>': add, clear, delete, forEach, and 7 more.
+src/store/slices/columnSlice.ts(115,48): error TS6133: 'newIndex' is declared but its value is never read.

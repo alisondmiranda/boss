@@ -9,4 +9,7 @@
    - Atualizar a versão exibida na UI (`Dashboard.tsx` ou similar).
    - Manter um registro claro do que mudou (Changelog) nos arquivos de documentação (`README.md` ou `ARCHITECTURE.md`).
 5. **Versionamento e Deploy**: Sempre que for realizado um deploy, a versão deve ser atualizada no `package.json` e na UI.
-
+6. **Banco de Dados (Supabase)**:
+   - A pasta `SQL Criadas` é a fonte da verdade para o schema do banco.
+   - SQLs nessa pasta são considerados "ativos" e executados no Supabase.
+   - Sempre que criar novas tabelas ou migrações, salve o `.sql` nesta pasta.

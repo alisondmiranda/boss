@@ -1,11 +1,14 @@
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
-import { Calendar, ChevronRight, GripVertical, X, Repeat, AlignLeft, ListChecks } from 'lucide-react'
+import { Calendar, ChevronRight, GripVertical, X, Repeat, AlignLeft, ListChecks, Check, LayoutGrid } from 'lucide-react'
 import { useFloating, autoUpdate, offset, flip, shift, useDismiss, useInteractions, FloatingPortal } from '@floating-ui/react'
 import { format, isPast, isToday, isTomorrow, isThisYear, formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { getColumnColorClass } from '../../lib/utils'
+import { useState } from 'react'
 
 import { Sector } from '../../store/settingsStore'
 import { Task } from '../../store/taskStore'
+import { useTaskStore } from '../../store/taskStore'
 import { useTaskItemLogic } from '../../hooks/useTaskItemLogic'
 import { useDragAndDrop } from '../../hooks/useDragAndDrop'
 import { StandardCalendar } from '../StandardCalendar'
@@ -17,10 +20,109 @@ import { TaskSectors } from './TaskSectors'
 import { TaskQuickActions } from './TaskQuickActions'
 import { TaskAddSubtask } from './TaskAddSubtask'
 
+// Column Badge Dropdown Component - Design igual TaskSectors
+function ColumnBadgeDropdown({ task, columns }: { task: Task, columns: any[] }) {
+    const [isOpen, setIsOpen] = useState(false)
+    const { moveTaskToColumn } = useTaskStore()
+
+    // Sort columns by order
+    const sortedColumns = [...columns].sort((a, b) => (a.order || 0) - (b.order || 0))
+    const currentColumn = sortedColumns.find(c => c.id === task.column_id)
+
+    const handleSelect = (columnId: string | null, e: React.MouseEvent) => {
+        e.stopPropagation()
+        moveTaskToColumn(task.id, columnId, 0)
+        setIsOpen(false)
+    }
+
+    const handleToggle = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        setIsOpen(!isOpen)
+    }
+
+    const { refs, floatingStyles, context } = useFloating({
+        open: isOpen,
+        onOpenChange: setIsOpen,
+        middleware: [offset(8), flip(), shift()],
+        whileElementsMounted: autoUpdate,
+        placement: 'bottom-end'
+    })
+
+    const dismiss = useDismiss(context)
+    const { getReferenceProps, getFloatingProps } = useInteractions([dismiss])
+
+    return (
+        <div
+            ref={refs.setReference}
+            {...getReferenceProps()}
+            className="hidden sm:flex items-center mr-2"
+        >
+            <button
+                onClick={handleToggle}
+                className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide flex items-center gap-1 transition-all hover:brightness-95 ${currentColumn ? getColumnColorClass(currentColumn.color) : 'bg-surface-variant/50 text-on-surface-variant hover:bg-surface-variant'}`}
+                title={currentColumn ? currentColumn.title : 'Adicionar Status'}
+            >
+                <LayoutGrid className="w-3 h-3 opacity-60" />
+                <span className="truncate max-w-[60px] md:max-w-[80px]">
+                    {currentColumn ? currentColumn.title : 'Status'}
+                </span>
+            </button>
+
+            <AnimatePresence>
+                {isOpen && (
+                    <FloatingPortal>
+                        <div
+                            ref={refs.setFloating}
+                            style={floatingStyles}
+                            {...getFloatingProps()}
+                            className="z-[90]"
+                        >
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                className="w-48 bg-surface rounded-[20px] shadow-lg border border-outline-variant/50 z-50 overflow-hidden flex flex-col py-2"
+                            >
+                                <span className="px-4 py-2 text-[10px] uppercase font-bold text-on-surface-variant/50 tracking-wider">Mover para...</span>
+                                {sortedColumns.map(col => {
+                                    const isActive = col.id === task.column_id
+                                    return (
+                                        <button
+                                            key={col.id}
+                                            onClick={(e) => handleSelect(col.id, e)}
+                                            className={`px-4 py-2.5 text-sm text-left flex items-center gap-3 hover:bg-surface-variant/50 transition-colors ${isActive ? 'text-primary font-bold bg-primary/5' : 'text-on-surface'}`}
+                                        >
+                                            <span className={`w-2 h-2 rounded-full bg-${col.color}-500`} />
+                                            {col.title}
+                                            {isActive && <Check className="w-3.5 h-3.5 ml-auto text-primary" />}
+                                        </button>
+                                    )
+                                })}
+                                {task.column_id && (
+                                    <div className="pt-2 mt-1 border-t border-outline-variant/30 px-2">
+                                        <button
+                                            onClick={(e) => handleSelect(null, e)}
+                                            className="w-full px-2 py-1.5 text-xs font-medium text-on-surface-variant/60 hover:text-on-surface hover:bg-surface-variant/30 rounded-lg transition-colors"
+                                        >
+                                            Remover status
+                                        </button>
+                                    </div>
+                                )}
+                            </motion.div>
+                        </div>
+                    </FloatingPortal>
+                )}
+            </AnimatePresence>
+        </div>
+    )
+}
+
+
 interface TaskItemProps {
     task: Task
     taskSectors: string[]
     sectors: Sector[]
+    columns?: any[] // Using any to avoid importing KanbanColumn circular dep if it occurs, but better use shared type
     toggleTask: (id: string, status: Task['status']) => void
     toggleTaskSector: (taskId: string, sectorId: string, allSectors: { id: string; label: string }[]) => Promise<void>
     setTaskMenuOpen: (id: string | null) => void
@@ -36,12 +138,13 @@ interface TaskItemProps {
     deleteSubtask: (subtaskId: string) => Promise<void>
     reorderSubtasks: (taskId: string, newSubtasks: any[]) => Promise<void>
     sortBy?: 'dueDate' | 'createdAt' | 'name' | 'manual'
+    onMobileClick?: (task: Task) => void
 }
 
 export function TaskItem({
-    task, taskSectors, sectors, toggleTask, toggleTaskSector,
+    task, taskSectors, sectors, columns, toggleTask, toggleTaskSector,
     setTaskMenuOpen, taskMenuOpen, handleMoveToTrash, updateTask, onEditClick, onRecurrenceClick,
-    updateSubtask, addSubtask, toggleSubtask, deleteSubtask, reorderSubtasks
+    updateSubtask, addSubtask, toggleSubtask, deleteSubtask, reorderSubtasks, onMobileClick
 }: TaskItemProps) {
     const { dragControls, handlePointerDown } = useDragAndDrop()
 
@@ -135,7 +238,11 @@ export function TaskItem({
             className={`bg-surface border border-outline-variant/30 rounded-[18px] flex flex-col group relative shadow-sm select-none hover:border-primary/60 hover:shadow-md ${task.status === 'done' ? 'opacity-75' : ''} ${animationState !== 'idle' ? 'pointer-events-none' : ''}`}
             ref={cardRef}
             onClick={() => {
-                if (!isActuallyExpanded) setIsQuickExpanded(true)
+                if (window.innerWidth < 768 && onMobileClick) {
+                    onMobileClick(task)
+                } else {
+                    if (!isActuallyExpanded) setIsQuickExpanded(true)
+                }
             }}
         >
             {/* Main Task Row */}
@@ -144,7 +251,7 @@ export function TaskItem({
                 <div
                     onPointerDown={handlePointerDown}
                     onClick={(e) => e.stopPropagation()}
-                    className="p-1 cursor-grab active:cursor-grabbing hover:bg-surface-variant rounded-md transition-colors shrink-0 mt-0.5"
+                    className="p-1 cursor-grab active:cursor-grabbing hover:bg-surface-variant rounded-md transition-colors shrink-0 mt-0.5 touch-none"
                 >
                     <GripVertical className="w-3.5 h-3.5 text-on-surface-variant/50 group-hover:text-on-surface-variant/80 transition-colors" />
                 </div>
@@ -272,6 +379,14 @@ export function TaskItem({
 
                 {/* Sector & Actions Section */}
                 <div className="flex items-center shrink-0 h-full mt-0.5">
+                    {/* Column Badge (Interactive Dropdown) */}
+                    {columns && columns.length > 0 && (
+                        <ColumnBadgeDropdown
+                            task={task}
+                            columns={columns}
+                        />
+                    )}
+
                     {/* Sector Badges (Atomized) */}
                     <TaskSectors
                         task={task}

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { PanelLeftClose, ListTodo, Trash2, Plus, Tag } from 'lucide-react'
+import { PanelLeftClose, ListTodo, Trash2, Plus, Tag, LayoutGrid } from 'lucide-react'
 import crownLogo from '../../assets/crown.svg'
 import { ICONS, AssistantIcon } from '../../constants/icons.tsx'
 import { Sector } from '../../store/types'
@@ -8,8 +8,8 @@ interface SidebarProps {
     isSidebarExpanded: boolean
     setIsSidebarExpanded: (expanded: boolean) => void
     sidebarOpen: boolean
-    sidebarMode: 'nav' | 'chat' | 'trash'
-    setSidebarMode: (mode: 'nav' | 'chat' | 'trash') => void
+    sidebarMode: 'nav' | 'chat' | 'trash' | 'kanban'
+    setSidebarMode: (mode: 'nav' | 'chat' | 'trash' | 'kanban') => void
     filter: string[]
     setFilter: (filter: string[]) => void
     toggleFilter: (id: string) => void
@@ -37,7 +37,7 @@ export function Sidebar({
                 opacity: sidebarOpen ? 1 : 0
             }}
             transition={{ type: "spring", stiffness: 400, damping: 35 }}
-            className={`${sidebarOpen ? 'flex' : 'hidden'} lg:flex h-full flex-col bg-surface border-r border-outline-variant/50 shadow-sm z-20 overflow-hidden relative`}
+            className={`${sidebarOpen ? 'flex' : 'hidden'} hidden md:flex h-full flex-col bg-surface border-r border-outline-variant/50 shadow-sm z-20 overflow-hidden relative`}
         >
             {/* Header / App Name */}
             <div className="h-20 flex items-center shrink-0 border-b border-transparent relative">
@@ -124,6 +124,27 @@ export function Sidebar({
                         </motion.div>
                     </div>
 
+                    {/* Kanban */}
+                    <button
+                        onClick={() => setSidebarMode('kanban')}
+                        className={`w-full flex items-center rounded-r-[16px] text-sm font-medium transition-colors relative ${sidebarMode === 'kanban' ? 'bg-primary/10 text-primary' : 'text-on-surface hover:bg-surface-variant/70'}`}
+                    >
+                        {sidebarMode === 'kanban' && (
+                            <div className="absolute left-0 top-2 bottom-2 w-1 bg-primary rounded-r-full" />
+                        )}
+
+                        <div className="w-[72px] h-12 shrink-0 flex items-center justify-center">
+                            <LayoutGrid className="w-5 h-5" />
+                        </div>
+
+                        <motion.span
+                            initial={false}
+                            animate={{ opacity: isSidebarExpanded ? 1 : 0, x: isSidebarExpanded ? 0 : -10 }}
+                            className="truncate overflow-hidden whitespace-nowrap"
+                        >
+                            Quadro
+                        </motion.span>
+                    </button>
                     {/* Chat (Assistant) */}
                     <button
                         onClick={() => setSidebarMode('chat')}
@@ -212,7 +233,7 @@ export function Sidebar({
 
             {/* Sidebar Footer */}
             <div className="mt-auto px-6 py-6 border-t border-outline-variant/30 bg-surface-variant/5">
-                <p className="text-[10px] text-on-surface-variant/60 font-bold uppercase tracking-widest pl-1">Boss v1.5.1</p>
+                <p className="text-[10px] text-on-surface-variant/60 font-bold uppercase tracking-widest pl-1">Boss v1.7.0</p>
             </div>
         </motion.aside>
     )
